@@ -1,15 +1,23 @@
-��Ҫ�޸� hello.pl �@���n��
+你好，我要写 Perl + Prima 的 GUI 程序。请严格遵守以下防坑规则（否则会反复报错）：
 
-Ո�� hello.pl �ĳ�һ����ε� Perl + Tk ��ƽ̨ GUI ��ʽ������ֻ�У�
+1. 子控件（Label、Button、Edit、Canvas 等）**绝对不能用 create 或 new 方法**！  
+   必须用 $parent->insert('Label' => text => 'xx', ...) 创建，用字符串 'Label' 最稳。
 
-- �_һ��Сҕ��
-- ҕ�����}�O�顸�˳��yԇ��
-- ҕ����С�s 300x150 ����
-- ҕ���eֻ��һ�����o�����֌����P�]�K�˳���
-- ���°��o��ֱ�ӽY��������ʽ������˳�����ֻ���Pҕ����
-- ��ʽҪʹ�� strict �� warnings
-- ���� shebang �� #!/usr/bin/env perl
-- ���oҪ�M������ҕ�����g�����������һ�c
+2. 顶级窗口（如 MainWindow）才用 ->create(...)，不要用 ->new。
 
-��� hello.pl ԭ�����������ݣ�Ոȫ����Q�ɷ�����������ĳ�ʽ�a
-Ոֱ�ӎ����޸� hello.pl
+3. **必须加** use Prima::Label; 防 bareword Label 问题。
+
+4. **绝对不要**写 use Prima qw(... ta); —— ta 不是 tag，会报 Can't locate Prima/ta.pm！  
+   ta::Center 等常量一律用数字 1（alignment => 1, valignment => 1）。
+
+5. 字体、对齐、风格全用数字常量，避免 bareword：
+   font => { size => 24, style => 1 }   # 1 = bold
+   alignment => 1, valignment => 1      # 1 = center
+
+6. insert 参数用普通键值对 text => 'xx', font => { ... }，**不要用 hashref { text => 'xx' }**。
+
+7. 布局优先 pack => { expand => 1, fill => 'both' } 自动居中。
+
+8. 运行用 run Prima;（不要 Prima->run）。
+
+现在基于以上规则，帮我写/改 Prima 程序：[在这里写你的具体需求，比如“一个带菜单栏（文件：打开/保存/退出，帮助：关于）和状态栏的窗口”或“加一个现代按钮，点击弹出消息”]

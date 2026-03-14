@@ -1,15 +1,25 @@
-我要修改 hello.pl 這個檔案
+你好，我要写 Perl + Prima 的 GUI 程序。请严格遵守以下防坑规则（否则会反复报错）：
 
-請把 hello.pl 改成一個最簡單的 Perl + Tk 跨平台 GUI 程式，功能只有：
+1. 子控件（Label、Button、Edit、Canvas 等）**绝对不能用 create 或 new 方法**！  
+   必须用 $parent->insert('Label' => text => 'xx', ...) 创建，用字符串 'Label' 最稳。
 
-- 開一個小視窗
-- 視窗標題設為「退出測試」
-- 視窗大小約 300x150 像素
-- 視窗裡只有一個按鈕，文字寫「關閉並退出」
-- 按下按鈕後直接結束整個程式（真的退出，不只是關視窗）
-- 程式要使用 strict 和 warnings
-- 加上 shebang 行 #!/usr/bin/env perl
-- 按鈕要盡量放在視窗中間，看起來舒服一點
+2. 顶级窗口（如 MainWindow）才用 ->create(...)，不要用 ->new。
 
-如果 hello.pl 原本有其他內容，請全部替換成符合以上需求的程式碼
-請直接幫我修改 hello.pl
+3. **必须加** use Prima::Label; 防 bareword Label 问题。
+
+4. **绝对不要**写 use Prima qw(... ta); —— ta 不是 tag，会报 Can't locate Prima/ta.pm！  
+   ta::Center 等常量一律用数字 1（alignment => 1, valignment => 1）。
+
+5. 字体、对齐、风格全用数字常量，避免 bareword：
+   font => { size => 24, style => 1 }   # 1 = bold
+   alignment => 1, valignment => 1      # 1 = center
+
+6. insert 参数用普通键值对 text => 'xx', font => { ... }，**不要用 hashref { text => 'xx' }**。
+
+7. 布局优先 pack => { expand => 1, fill => 'both' } 自动居中。
+
+8. 运行用 run Prima;（不要 Prima->run）。
+
+现在基于以上规则，帮我写/改 Prima 程序：[在这里写你的具体需求，比如“一个带菜单栏（文件：打开/保存/退出，帮助：关于）和状态栏的窗口”或“加一个现代按钮，点击弹出消息”]
+
+

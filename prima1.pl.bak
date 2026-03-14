@@ -1,0 +1,13 @@
+use strict;
+use warnings;
+use Prima qw(Application Label);
+
+my $mw = Prima::MainWindow->create(
+    size => [400, 300],
+    title => 'Hello Prima',
+    center => 1,
+);
+
+
+
+Prima->run;
