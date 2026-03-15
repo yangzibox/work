@@ -8,9 +8,10 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-	"tauri": "tauri"
+    "tauri": "tauri"
   },
   "dependencies": {
+    "@tauri-apps/plugin-fs": "^2.4.5",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },

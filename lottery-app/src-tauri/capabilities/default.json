@@ -6,6 +6,13 @@
     "main"
   ],
   "permissions": [
-    "core:default"
+    {
+      "identifier": "fs:write-all",
+      "allow": ["$APPLOCALDATA/**"]
+    },
+    {
+      "identifier": "fs:read-all",
+      "allow": ["$APPLOCALDATA/**"]
+    }
   ]
 }

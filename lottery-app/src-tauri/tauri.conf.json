@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "lottery-app",
+  "productName": "LuckyDrawBox",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.yangzibox.luckydrawbox",
   "build": {
     "frontendDist": "./dist",
     "devUrl": "http://localhost:5173",
@@ -10,9 +10,10 @@
     "beforeBuildCommand": "npm run build"
   },
   "app": {
+	"withGlobalTauri": true,
     "windows": [
       {
-        "title": "抽奖",
+        "title": "LuckyDrawBox",
         "width": 800,
         "height": 600,
         "resizable": true,
