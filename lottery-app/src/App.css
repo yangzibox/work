@@ -1,0 +1,118 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body, html, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.fullscreen {
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  color: gold;
+  font-family: 'Microsoft YaHei', Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+}
+
+h1 {
+  font-size: 6rem;
+  font-weight: bold;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+  text-align: center;
+  padding: 0 20px;
+}
+
+.blink {
+  animation: blink 1.2s infinite alternate;
+}
+
+@keyframes blink {
+  from { opacity: 1; }
+  to   { opacity: 0.3; }
+}
+
+.tips {
+  position: absolute;
+  bottom: 40px;
+  font-size: 1.5rem;
+  color: #888;
+  opacity: 0.7;
+}
+
+
+/* 原有全屏样式保持不变 */
+.fullscreen {
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  color: gold;
+  font-family: 'Microsoft YaHei', Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+}
+
+.blink {
+  animation: blink 1.2s infinite alternate;
+}
+
+@keyframes blink {
+  from { opacity: 1; }
+  to   { opacity: 0.3; }
+}
+
+.tips {
+  position: absolute;
+  bottom: 40px;
+  font-size: 1.5rem;
+  color: #888;
+  opacity: 0.7;
+}
+
+/* 新增：主界面样式 */
+.main-screen {
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(135deg, #1e3c72, #2a5298);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+}
+
+.start-button {
+  padding: 20px 60px;
+  font-size: 3rem;
+  font-weight: bold;
+  background: gold;
+  color: #000;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  transition: all 0.3s;
+}
+
+.start-button:hover {
+  transform: scale(1.1);
+  background: #ffd700;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+}
+
+.hint {
+  margin-top: 40px;
+  font-size: 1.5rem;
+  opacity: 0.8;
+}

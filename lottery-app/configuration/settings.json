@@ -1,0 +1,42 @@
+{
+  "//整体说明": "本文件为年会抽奖系统核心配置，所有路径均为相对于项目根目录的相对路径",
+
+  "//participants说明": "参与者名单 CSV 文件路径，第一列必须为 id（员工号，必填），第二列为姓名（必填），后续列可选（如职务、部门）",
+  "participants": "configuration/participants.csv",
+
+  "//read_fields_max说明": "读取 CSV 时每行最多读取的字段数（列数），超出部分会被忽略，建议设置为 CSV 实际最大列数",
+  "read_fields_max": 4,
+
+  "//display_fields说明": "滚动显示时只显示前几列的内容，例如 2 表示只显示 id + 姓名，职务和部门不显示在屏幕上",
+  "display_fields": 2,
+
+  "//grand-prize说明": "特等奖获奖人数（0 表示无特等奖）",
+  "grand-prize": 0,
+
+  "//1st-prize说明": "一等奖获奖人数",
+  "1st-prize": 1,
+
+  "//2nd-prize说明": "二等奖获奖人数",
+  "2nd-prize": 2,
+
+  "//3rd-prize说明": "三等奖获奖人数",
+  "3rd-prize": 3,
+
+  "//4th-prize说明": "四等奖获奖人数",
+  "4th-prize": 4,
+
+  "//5th-prize说明": "五等奖获奖人数",
+  "5th-prize": 5,
+
+  "//6th-prize说明": "六等奖获奖人数（从这里开始抽取）",
+  "6th-prize": 6,
+
+  "//hotpot-prize说明": "火锅等奖获奖人数",
+  "hotpot-prize": 7,
+
+  "//grand-prize-pred说明": "特等奖内定人 id（为空字符串表示无内定），抽特等奖时此人一定中奖",
+  "grand-prize-pred": "",
+
+  "//1st-prize-pred说明": "一等奖内定人 id（为空字符串表示无内定），抽一等奖时此人一定中奖",
+  "1st-prize-pred": ""
+}
