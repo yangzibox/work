@@ -346,6 +346,65 @@ function App() {
     }
   };
 
+    // 新增：刷新配置按钮逻辑（和启动加载完全一致的检查）
+  const refreshConfig = async () => {
+    setLoading(true);
+    try {
+      console.log('手动刷新配置...');
+
+      const settingsRes = await fetch('/configuration/settings.json', { cache: 'no-store' });
+      if (!settingsRes.ok) throw new Error(`settings.json 加载失败 ${settingsRes.status}`);
+
+      const rawSettings = await settingsRes.json();
+      const cleanSettings = Object.fromEntries(
+        Object.entries(rawSettings).filter(([k]) => !k.startsWith('//'))
+      );
+
+      const csvPath = cleanSettings.participants || 'configuration/participants.csv';
+      const csvRes = await fetch(`/${csvPath}?t=${Date.now()}`, { cache: 'no-store' });
+      if (!csvRes.ok) throw new Error(`participants.csv 加载失败 ${csvRes.status}`);
+
+      const csvText = await csvRes.text();
+      const lines = csvText.split(/\r?\n/);
+      const filteredLines = lines.map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+
+      if (filteredLines.length < 2) throw new Error('CSV 文件没有有效数据（至少需要表头 + 1行数据）');
+
+      const headers = parseCSVLine(filteredLines[0]);
+      const readMax = Number(cleanSettings.read_fields_max || 4);
+
+      const data = filteredLines.slice(1).map(line => {
+        const values = parseCSVLine(line);
+        const row = {};
+        for (let i = 0; i < Math.min(values.length, readMax); i++) {
+          row[headers[i] || `col${i}`] = (values[i] || '').trim();
+        }
+        return row;
+      }).filter(row => row.id && row.id.trim() !== '' && !row.id.startsWith('#'));
+
+      if (data.length === 0) throw new Error('名单中没有有效参与者（缺少 id 字段或全部被过滤）');
+
+      // 更新状态
+      setSettings(cleanSettings);
+      setParticipants(data);
+
+      const valid = prizeDefs
+        .map(p => ({ ...p, total: Number(cleanSettings[p.key] ?? 0) }))
+        .filter(p => p.total > 0);
+
+      setValidPrizes(valid);
+
+      console.log(`刷新成功！有效人数: ${data.length} 人，有效奖项: ${valid.length} 个`);
+      alert(`✅ 配置已刷新！\n\n当前参与人数：${data.length} 人\n有效奖项：${valid.map(p => p.name).join('、') || '无'}`);
+
+    } catch (err) {
+      console.error('刷新配置失败:', err);
+      alert(`❌ 刷新失败：\n${err.message}\n\n请检查 configuration/settings.json 和 participants.csv 文件是否正确！`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const currentPrize = validPrizes[currentPrizeIndex] || {};
   const currentPerson = participants[currentIndex] || {};
   const displayText = Array(settings.display_fields || 2)
@@ -356,20 +415,30 @@ function App() {
 
   if (loading) return <div className="main-screen">加载中...</div>;
 
-    if (!isFullscreen) {
+      if (!isFullscreen) {
     return (
       <div className="main-screen">
         <h2>年会抽奖系统</h2>
         
         <p>当前参与人数：{participants.length} 人</p>
 
-        {/* About 按钮移到右上角 */}
-        <button 
-          className="about-button" 
-          onClick={() => alert('年会抽奖桌面程序 v1.0\n作者：yangzibox@163.com\nGitHub: https://github.com/yangzibox/work')}
-        >
-          About
-        </button>
+        {/* 右上角按钮组：Refresh 在左侧，About 在右侧 */}
+        <div style={{ position: 'absolute', top: '30px', right: '40px', display: 'flex', gap: '12px' }}>
+          <button 
+            className="about-button refresh-button"
+            onClick={refreshConfig}
+            disabled={loading}
+          >
+            {loading ? '刷新中...' : '↻ 刷新配置'}
+          </button>
+          
+          <button 
+            className="about-button"
+            onClick={() => alert('年会抽奖桌面程序 v1.0\n作者：yangzibox\nGitHub: https://github.com/yangzibox/work')}
+          >
+            About
+          </button>
+        </div>
 
         <button className="start-button" onClick={enterFullscreen} disabled={loading}>
           {loading ? '加载中...' : '开始抽奖（全屏）'}

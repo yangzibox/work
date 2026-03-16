@@ -234,3 +234,18 @@ body, html {
   90%  { opacity: 1; transform: translate(-50%, 0); }
   100% { opacity: 0; transform: translate(-50%, 30px); }
 }
+
+/* Refresh 按钮 - 挨着 About 左侧 */
+.refresh-button {
+  background: rgba(82, 196, 26, 0.85) !important;   /* 绿色系，区分于蓝色 About */
+}
+
+.refresh-button:hover {
+  background: #52c41a !important;
+}
+
+.refresh-button:disabled {
+  background: #666 !important;
+  cursor: not-allowed;
+  transform: none !important;
+}
