@@ -356,21 +356,23 @@ function App() {
 
   if (loading) return <div className="main-screen">加载中...</div>;
 
-  if (!isFullscreen) {
+    if (!isFullscreen) {
     return (
       <div className="main-screen">
         <h2>年会抽奖系统</h2>
-        <button className="start-button" onClick={enterFullscreen} disabled={loading}>
-          {loading ? '加载中...' : '开始抽奖'}
-        </button>
-        <p>参与人数：{participants.length} 人</p>
-        <button
-          onClick={() => {
-            navigator.clipboard.writeText('yangzibox@163.com');
-            alert('邮箱已复制！');
-          }}
+        
+        <p>当前参与人数：{participants.length} 人</p>
+
+        {/* About 按钮移到右上角 */}
+        <button 
+          className="about-button" 
+          onClick={() => alert('年会抽奖桌面程序 v1.0\n作者：yangzibox@163.com\nGitHub: https://github.com/yangzibox/work')}
         >
           About
+        </button>
+
+        <button className="start-button" onClick={enterFullscreen} disabled={loading}>
+          {loading ? '加载中...' : '开始抽奖（全屏）'}
         </button>
       </div>
     );

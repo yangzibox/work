@@ -26,7 +26,25 @@ body, html {
   color: white;
   cursor: pointer;
   margin: 20px;
+  
+  /* 新增点击反馈 */
+  transition: all 0.15s ease;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  transform: translateY(0);
 }
+
+.start-button:hover {
+  background: #ff6666;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
+}
+
+.start-button:active {
+  transform: translateY(4px) scale(0.96);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
+  background: #e63946;
+}
+
+
 
 .start-button:disabled {
   background: #666;
@@ -34,14 +52,23 @@ body, html {
 }
 
 .about-button {
-  margin-top: 20px;
-  padding: 10px 30px;
-  font-size: 20px;
-  background: #1890ff;
+  position: absolute;
+  top: 30px;
+  right: 40px;
+  padding: 8px 20px;
+  font-size: 18px;
+  background: rgba(24, 144, 255, 0.85);
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   color: white;
   cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s;
+}
+
+.about-button:hover {
+  background: #1890ff;
+  transform: scale(1.05);
 }
 
 .fullscreen {
@@ -128,7 +155,7 @@ body, html {
 
 .tips {
   position: absolute;
-  bottom: 8vh;           /* 关键：往下移动 */
+  bottom: 10vh;          /* 原 8vh → 调到 10vh 或 12vh，根据实际屏幕感觉 */
   left: 50%;
   transform: translateX(-50%);
   font-size: 1.6rem;
@@ -137,7 +164,9 @@ body, html {
   margin: 0;
   padding: 0;
   white-space: nowrap;
+  z-index: 10;           /* 保险起见，加个 z-index 防止被盖住 */
 }
+
 
 /* 如果你有专门的 bottom tips，可以额外加这个 */
 .tips.bottom {
@@ -148,4 +177,60 @@ body, html {
   font-size: 8rem;
   color: #ffeb3b;
   text-shadow: 0 0 40px #ffeb3b;
+}
+
+.current-prize-title {
+  font-size: 3.2rem;
+  color: #ffeb3b;
+  margin: 1rem 0 3rem 0;
+  text-shadow: 0 0 25px rgba(255, 235, 59, 0.9);
+  font-weight: bold;
+}
+
+
+/* 右上角 About 按钮 */
+.about-btn {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: all 0.2s ease;
+}
+
+.about-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+/* 复制提示 */
+.copy-feedback {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.75);
+  color: #ffffff;
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-size: 17px;
+  font-weight: 500;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  animation: fadeInOut 2.2s forwards;
+}
+
+@keyframes fadeInOut {
+  0%   { opacity: 0; transform: translate(-50%, 30px); }
+  10%  { opacity: 1; transform: translate(-50%, 0); }
+  90%  { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, 30px); }
 }
