@@ -98,56 +98,11 @@ function App() {
         console.log(`解析完成！有效人数: ${data.length} 人`);
         setParticipants(data);
 
-        // === 严格校验：从第一个非0奖项到一等奖之间不允许有0 ===
-		// 先把所有奖项的数量取出来
-		const allPrizes = prizeDefs.map(p => ({
-		  ...p,
-		  total: Number(cleanSettings[p.key] ?? 0)
-		}));
+        const valid = prizeDefs
+          .map(p => ({ ...p, total: Number(cleanSettings[p.key] ?? 0) }))
+          .filter(p => p.total > 0);
 
-		// 找到第一个数量 > 0 的奖项索引（从低等奖往高奖）
-		let firstNonZeroIndex = -1;
-		for (let i = 0; i < allPrizes.length; i++) {
-		  if (allPrizes[i].total > 0) {
-			firstNonZeroIndex = i;
-			break;
-		  }
-		}
-
-		// 如果全部奖项都是0 → 直接报错（至少要有一个奖项）
-		if (firstNonZeroIndex === -1) {
-		  throw new Error('settings.json 中所有奖项数量均为 0，至少请设置一个奖项！');
-		}
-
-		// 找到一等奖的索引（用于判断连续范围的终点）
-		const firstPrizeIndex = prizeDefs.findIndex(p => p.key === '1st-prize');
-		if (firstPrizeIndex === -1) {
-		  throw new Error('奖项定义中缺少 "1st-prize"，请检查 prizeDefs 数组');
-		}
-
-		// 从第一个非0奖项 开始，到 一等奖（包含一等奖）为止，中间不能有 total === 0
-		for (let i = firstNonZeroIndex; i <= firstPrizeIndex; i++) {
-		  if (allPrizes[i].total === 0) {
-			const badPrizeName = allPrizes[i].name;
-			throw new Error(
-			  `奖项设置不合法：从第一个非0奖项（${allPrizes[firstNonZeroIndex].name}）到一等奖之间不允许出现数量为0的奖项。\n` +
-			  `违规奖项：${badPrizeName} (数量=0)`
-			);
-		  }
-		}
-
-		// 校验通过 → 过滤出真正要抽的奖项（total > 0 的）
-		const valid = allPrizes.filter(p => p.total > 0);
-		setValidPrizes(valid);
-
-		// 可选：打印跳过了哪些低等奖，便于调试
-		if (firstNonZeroIndex > 0) {
-		  const skippedNames = allPrizes
-			.slice(0, firstNonZeroIndex)
-			.map(p => p.name)
-			.join('、');
-		  console.log(`已自动跳过低等奖（数量为0）：${skippedNames}`);
-		}
+        setValidPrizes(valid);
         setScreen('ready');
 
       } catch (err) {
