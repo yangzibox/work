@@ -52,9 +52,9 @@ body, html {
 }
 
 .about-button {
-  position: absolute;
-  top: 30px;
-  right: 40px;
+  /* position: absolute;   ← 注释掉这行（或直接删除） */
+  /* top: 30px;            ← 注释掉 */
+  /* right: 40px;          ← 注释掉 */
   padding: 8px 20px;
   font-size: 18px;
   background: rgba(24, 144, 255, 0.85);
@@ -235,17 +235,35 @@ body, html {
   100% { opacity: 0; transform: translate(-50%, 30px); }
 }
 
-/* Refresh 按钮 - 挨着 About 左侧 */
+/* ==================== 右上角按钮组 - 解决重叠和竖长问题 ==================== */
+.header-buttons {
+  position: absolute;
+  top: 30px;
+  right: 40px;
+  display: flex;
+  gap: 12px;
+  z-index: 20;
+}
+
 .refresh-button {
-  background: rgba(82, 196, 26, 0.85) !important;   /* 绿色系，区分于蓝色 About */
+  padding: 8px 20px;
+  font-size: 18px;
+  background: rgba(82, 196, 26, 0.85);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .refresh-button:hover {
-  background: #52c41a !important;
+  background: #52c41a;
+  transform: scale(1.05);
 }
 
 .refresh-button:disabled {
-  background: #666 !important;
+  background: #666;
   cursor: not-allowed;
-  transform: none !important;
+  transform: none;
 }

@@ -415,17 +415,17 @@ function App() {
 
   if (loading) return <div className="main-screen">加载中...</div>;
 
-      if (!isFullscreen) {
+        if (!isFullscreen) {
     return (
       <div className="main-screen">
         <h2>年会抽奖系统</h2>
         
         <p>当前参与人数：{participants.length} 人</p>
 
-        {/* 右上角按钮组：Refresh 在左侧，About 在右侧 */}
-        <div style={{ position: 'absolute', top: '30px', right: '40px', display: 'flex', gap: '12px' }}>
+        {/* 右上角按钮组：Refresh 在左，About 在右 */}
+        <div className="header-buttons">
           <button 
-            className="about-button refresh-button"
+            className="refresh-button"
             onClick={refreshConfig}
             disabled={loading}
           >
