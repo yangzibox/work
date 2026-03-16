@@ -204,10 +204,11 @@ function App() {
       console.log(`重新读取完成，有效人数: ${data.length}`);
 
       // 生成奖项列表
-      // === 新增：严格校验奖项连续性规则（必须通过才能继续创建文件和进入全屏）===
-      const { validPrizes: newValidPrizes } = validatePrizes(cleanSettings);
+      const valid = prizeDefs
+        .map(p => ({ ...p, total: Number(cleanSettings[p.key] ?? 0) }))
+        .filter(p => p.total > 0);
 
-      setValidPrizes(newValidPrizes);
+      if (valid.length === 0) throw new Error('配置中没有有效奖项');
 
       setValidPrizes(valid);
 
@@ -466,7 +467,7 @@ function App() {
             className="about-button"
             onClick={() => alert('年会抽奖桌面程序 v1.0\n作者：yangzibox\nGitHub: https://github.com/yangzibox/work')}
           >
-            关于
+            About
           </button>
         </div>
 

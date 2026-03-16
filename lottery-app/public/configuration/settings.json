@@ -29,7 +29,7 @@
   "5th-prize": 5,
 
   "//6th-prize说明": "六等奖获奖人数（从这里开始抽取）",
-  "6th-prize": 6,
+  "6th-prize": 0,
 
   "//hotpot-prize说明": "火锅等奖获奖人数",
   "hotpot-prize": 10,
