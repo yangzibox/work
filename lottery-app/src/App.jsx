@@ -24,13 +24,12 @@ const parseCSVLine = (line) => {
     field += char;
   }
 
-  if (field) {
-    result.push(field.trim().replace(/^"|"$/g, ''));
-  }
+  if (field) result.push(field.trim().replace(/^"|"$/g, ''));
 
   return result;
 };
 
+// 奖项定义
 const prizeDefs = [
   { key: 'hotpot-prize', name: '火锅奖' },
   { key: '6th-prize', name: '六等奖' },
@@ -42,7 +41,7 @@ const prizeDefs = [
   { key: 'grand-prize', name: '特等奖' },
 ];
 
-let resultFilePath = null; // 全局保存文件相对路径
+let resultFilePath = null;
 
 function App() {
   const [screen, setScreen] = useState('loading');
@@ -58,12 +57,12 @@ function App() {
 
   const isTauri = !!window.__TAURI__;
 
-  // 加载配置 + 名单
+  // 程序启动时读取一次配置和名单（保持主界面人数正常）
   useEffect(() => {
     const loadConfig = async () => {
       setLoading(true);
       try {
-        console.log('🚀 开始加载 settings.json...');
+        console.log('程序启动 - 加载 settings.json...');
 
         const settingsRes = await fetch('/configuration/settings.json', { cache: 'no-store' });
         if (!settingsRes.ok) throw new Error(`settings.json 加载失败 ${settingsRes.status}`);
@@ -96,7 +95,7 @@ function App() {
           return row;
         }).filter(row => row.id && row.id.trim() !== '' && !row.id.startsWith('#'));
 
-        console.log(`✅ 解析完成！有效人数: ${data.length} 人`);
+        console.log(`解析完成！有效人数: ${data.length} 人`);
         setParticipants(data);
 
         const valid = prizeDefs
@@ -107,8 +106,8 @@ function App() {
         setScreen('ready');
 
       } catch (err) {
-        console.error('❌ 加载失败:', err);
-        alert('加载失败：' + err.message + '\n\n请检查 configuration 目录下的文件！');
+        console.error('❌ 启动加载失败:', err);
+        alert('启动加载失败：' + err.message + '\n\n请检查 configuration 目录下的文件！');
       } finally {
         setLoading(false);
       }
@@ -117,54 +116,7 @@ function App() {
     loadConfig();
   }, []);
 
-  // 初始化 output 目录和结果文件（Tauri v2 兼容版）
-  useEffect(() => {
-    if (!isTauri) return;
-
-    const initOutputFile = async () => {
-      try {
-        const fs = await import('@tauri-apps/plugin-fs');
-        const { mkdir, exists, writeTextFile, BaseDirectory } = fs;
-
-        const ts = new Date().toISOString().replace(/[-T:.Z]/g, '').slice(0, 14);
-        const fileName = `result_${ts}.csv`;
-        const dirPath = 'output';
-        const fullFilePath = `${dirPath}/${fileName}`;
-
-        console.log('🔧 初始化 output 目录... 使用 BaseDirectory.AppLocalData');
-
-        // 创建 output 目录
-        await mkdir(dirPath, {
-          baseDir: BaseDirectory.AppLocalData,
-          recursive: true,
-        });
-        console.log('✅ output 目录已创建/存在');
-
-        // 检查并创建 CSV + 表头
-        const fileExists = await exists(fullFilePath, { baseDir: BaseDirectory.AppLocalData });
-        if (!fileExists) {
-          const header = '奖项,抽奖时间,员工号,姓名,职务,部门\n';
-          await writeTextFile(fullFilePath, header, {
-            baseDir: BaseDirectory.AppLocalData,
-          });
-          console.log(`✅ 结果文件创建成功: ${fullFilePath}`);
-        } else {
-          console.log(`文件已存在: ${fullFilePath}`);
-        }
-
-        resultFilePath = fullFilePath;
-        console.log('🎯 输出文件路径准备完成');
-      } catch (err) {
-        console.error('❌ output 初始化失败:', err);
-        console.log('错误名字:', err.name, '消息:', err.message);
-        alert('创建 output 失败！请查看控制台错误（常见：权限未配置或路径问题）');
-      }
-    };
-
-    initOutputFile();
-  }, [isTauri]);
-
-  // 滚动定时器（加速版，80ms 一帧）
+  // 滚动定时器
   useEffect(() => {
     if (screen !== 'rolling' || participants.length === 0) return;
 
@@ -175,7 +127,7 @@ function App() {
     return () => clearInterval(timer);
   }, [screen, participants]);
 
-  // 键盘 + 全屏事件
+  // 键盘和全屏事件
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!isFullscreen) return;
@@ -192,7 +144,6 @@ function App() {
       const isFull = !!document.fullscreenElement;
       setIsFullscreen(isFull);
       if (!isFull) {
-        // 退出全屏时重置所有抽奖状态
         setScreen('ready');
         setCurrentPrizeIndex(0);
         setUsedIds(new Set());
@@ -209,12 +160,103 @@ function App() {
     };
   }, [isFullscreen, screen, currentPrizeIndex, validPrizes, participants, usedIds]);
 
-  const enterFullscreen = () => {
-    setCurrentPrizeIndex(0);
-    setUsedIds(new Set());
-    setCurrentRoundWinners([]);
-    document.documentElement.requestFullscreen?.();
-    setScreen('prize_guide');
+  const enterFullscreen = async () => {
+    setLoading(true);
+    try {
+      // 重新读取 settings.json
+      console.log('点击开始抽奖 - 重新读取 settings.json...');
+      const settingsRes = await fetch('/configuration/settings.json', { cache: 'no-store' });
+      if (!settingsRes.ok) throw new Error(`settings.json 加载失败 ${settingsRes.status}`);
+
+      const rawSettings = await settingsRes.json();
+      const cleanSettings = Object.fromEntries(
+        Object.entries(rawSettings).filter(([k]) => !k.startsWith('//'))
+      );
+      setSettings(cleanSettings);
+
+      // 重新读取 participants.csv
+      const csvPath = cleanSettings.participants || 'configuration/participants.csv';
+      console.log('重新读取参与者名单:', csvPath);
+      const csvRes = await fetch(`/${csvPath}?t=${Date.now()}`, { cache: 'no-store' });
+      if (!csvRes.ok) throw new Error(`participants.csv 加载失败 ${csvRes.status}`);
+
+      const csvText = await csvRes.text();
+      const lines = csvText.split(/\r?\n/);
+      const filteredLines = lines.map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+
+      if (filteredLines.length < 2) throw new Error('CSV 文件没有有效数据');
+
+      const headers = parseCSVLine(filteredLines[0]);
+      const readMax = Number(cleanSettings.read_fields_max || 4);
+
+      const data = filteredLines.slice(1).map(line => {
+        const values = parseCSVLine(line);
+        const row = {};
+        for (let i = 0; i < Math.min(values.length, readMax); i++) {
+          row[headers[i] || `col${i}`] = (values[i] || '').trim();
+        }
+        return row;
+      }).filter(row => row.id && row.id.trim() !== '' && !row.id.startsWith('#'));
+
+      if (data.length === 0) throw new Error('名单中没有有效参与者');
+
+      setParticipants(data);
+      console.log(`重新读取完成，有效人数: ${data.length}`);
+
+      // 生成奖项列表
+      const valid = prizeDefs
+        .map(p => ({ ...p, total: Number(cleanSettings[p.key] ?? 0) }))
+        .filter(p => p.total > 0);
+
+      if (valid.length === 0) throw new Error('配置中没有有效奖项');
+
+      setValidPrizes(valid);
+
+      // 生成全新的 CSV 文件（完全照抄你稳定版的创建方式：writeTextFile + exists 检查）
+      if (isTauri) {
+        const fs = await import('@tauri-apps/plugin-fs');
+        const { mkdir, exists, writeTextFile, BaseDirectory } = fs;
+
+        const ts = new Date().toISOString().replace(/[-T:.Z]/g, '').slice(0, 14);
+        const fileName = `result_${ts}.csv`;
+        const dirPath = 'output';
+        const fullFilePath = `${dirPath}/${fileName}`;
+
+        console.log(`点击开始抽奖 - 创建新结果文件: ${fullFilePath}`);
+
+        await mkdir(dirPath, {
+          baseDir: BaseDirectory.AppLocalData,
+          recursive: true,
+        });
+
+        const fileExists = await exists(fullFilePath, { baseDir: BaseDirectory.AppLocalData });
+        if (!fileExists) {
+          const header = '\uFEFF奖项,抽奖时间,员工号,姓名,职务,部门\n';
+          await writeTextFile(fullFilePath, header, {
+            baseDir: BaseDirectory.AppLocalData,
+          });
+          console.log(`新文件创建并写入表头: ${fullFilePath}`);
+        } else {
+          console.log(`新文件已存在（极少发生）: ${fullFilePath}`);
+        }
+
+        resultFilePath = fullFilePath;
+        console.log('本次抽奖新文件路径已设置:', resultFilePath);
+      }
+
+      // 重置状态并进入全屏
+      setCurrentPrizeIndex(0);
+      setUsedIds(new Set());
+      setCurrentRoundWinners([]);
+      setScreen('prize_guide');
+      await document.documentElement.requestFullscreen();
+
+    } catch (err) {
+      console.error('开始抽奖失败:', err);
+      alert('开始抽奖失败：\n' + (err.message || '未知错误') + '\n\n请检查 configuration 目录下的文件！');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSpace = async () => {
@@ -235,7 +277,6 @@ function App() {
         return;
       }
 
-      // 随机抽取（洗牌后取前 N 个）
       const shuffled = [...available].sort(() => Math.random() - 0.5);
       const winners = shuffled.slice(0, currentPrize.total);
 
@@ -248,10 +289,12 @@ function App() {
       setCurrentRoundWinners(winners);
       setScreen('result');
 
-      // 写入文件
+      // 写入结果文件（你稳定版原封不动）
       if (isTauri && resultFilePath) {
         try {
           const fs = await import('@tauri-apps/plugin-fs');
+          const { open, BaseDirectory } = fs;
+
           const now = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
 
           const lines = winners.map(w => {
@@ -268,22 +311,28 @@ function App() {
 
           const content = lines.join('\n') + '\n';
 
-          await fs.appendTextFile(resultFilePath, content, {
-            baseDir: fs.BaseDirectory.AppLocalData
+          const file = await open(resultFilePath, {
+            baseDir: BaseDirectory.AppLocalData,
+            append: true,
+            create: true
           });
 
-          console.log(`✅ 已写入 ${currentPrize.name} 的 ${winners.length} 条记录`);
+          await file.write(new TextEncoder().encode(content));
+          // await file.close();  // 你稳定版去掉了，没问题
+
+          console.log(`✅ 已追加 ${winners.length} 条记录到 ${resultFilePath}`);
+
         } catch (err) {
           console.error('❌ 写入失败:', err);
+          alert('写入中奖结果失败，请查看控制台');
         }
       } else {
-        console.log('[浏览器模式] 本轮中奖:', winners);
+        console.log('[非 Tauri / 路径为空] 本轮中奖（未写入文件）:', winners);
       }
 
       return;
     }
 
-    // result 界面按空格 → 下一轮或结束
     if (screen === 'result') {
       setCurrentRoundWinners([]);
       const nextIndex = currentPrizeIndex + 1;
@@ -311,8 +360,8 @@ function App() {
     return (
       <div className="main-screen">
         <h2>年会抽奖系统</h2>
-        <button className="start-button" onClick={enterFullscreen}>
-          开始抽奖
+        <button className="start-button" onClick={enterFullscreen} disabled={loading}>
+          {loading ? '加载中...' : '开始抽奖'}
         </button>
         <p>参与人数：{participants.length} 人</p>
         <button
