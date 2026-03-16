@@ -57,6 +57,51 @@ function App() {
 
   const isTauri = !!window.__TAURI__;
 
+    const validatePrizeContinuity = (cleanSettings) => {
+    const allPrizes = prizeDefs.map(p => ({
+      ...p,
+      total: Number(cleanSettings[p.key] ?? 0)
+    }));
+
+    // 找到第一个 >0 的奖项索引（从火锅奖开始，排除特等奖）
+    let startIdx = -1;
+    for (let i = 0; i < prizeDefs.length - 1; i++) {
+      if (allPrizes[i].total > 0) {
+        startIdx = i;
+        break;
+      }
+    }
+
+    // 如果有起点（常规奖有 >0），检查从起点到一等奖连续
+    if (startIdx !== -1) {
+      const firstPrizeIdx = prizeDefs.findIndex(p => p.key === '1st-prize');
+      if (firstPrizeIdx === -1) {
+        alert('奖项定义中缺少 "1st-prize"，请检查 prizeDefs');
+        return false;
+      }
+
+      for (let i = startIdx; i <= firstPrizeIdx; i++) {
+        if (allPrizes[i].total <= 0) {
+          const startName = allPrizes[startIdx].name;
+          const badName = allPrizes[i].name;
+          alert(
+            `奖项数量不连续！\n` +
+            `从 "${startName}" (${allPrizes[startIdx].total}人) 开始，\n` +
+            `到一等奖之间不允许出现数量为0的奖项。\n` +
+            `违规奖项：${badName} = 0`
+          );
+          return false;
+        }
+      }
+    }
+
+    // 特等奖独立判断，不参与连续校验
+    // 全部常规奖为0，但特等奖 >0 → 允许
+    // 全部为0 → 下面简单过滤会处理（valid.length === 0 报错）
+
+    return true;
+  };
+
   // 程序启动时读取一次配置和名单（保持主界面人数正常）
   useEffect(() => {
     const loadConfig = async () => {
@@ -200,15 +245,29 @@ function App() {
 
       if (data.length === 0) throw new Error('名单中没有有效参与者');
 
-      setParticipants(data);
+            setParticipants(data);
       console.log(`重新读取完成，有效人数: ${data.length}`);
 
-      // 生成奖项列表
-      const valid = prizeDefs
-        .map(p => ({ ...p, total: Number(cleanSettings[p.key] ?? 0) }))
-        .filter(p => p.total > 0);
+      // 使用和手动刷新相同的严格校验
+      let newValidPrizes;
+      try {
+        const result = validatePrizes(cleanSettings);
+        newValidPrizes = result.validPrizes;
+        setValidPrizes(newValidPrizes);
+      } catch (err) {
+        alert(`开始抽奖失败：奖项配置有问题\n\n${err.message}`);
+        setScreen('ready');    // 返回主界面
+        setLoading(false);
+        return;                // 停止后续全屏、文件创建等
+      }
 
-      if (valid.length === 0) throw new Error('配置中没有有效奖项');
+      // 如果校验通过，但 validPrizes 为空（理论上不会，但防呆）
+      if (newValidPrizes.length === 0) {
+  alert('配置中没有有效奖项，请检查 settings.json');
+  setScreen('ready');
+  setLoading(false);
+  return;
+}
 
       setValidPrizes(valid);
 
@@ -348,37 +407,56 @@ function App() {
 
     // 新增：严格校验奖项连续性规则
   const validatePrizes = (cleanSettings) => {
-    const prizesWithTotal = prizeDefs.map(p => ({
-      ...p,
-      total: Number(cleanSettings[p.key] ?? 0)
-    }));
+  const prizesWithTotal = prizeDefs.map(p => ({
+    ...p,
+    total: Number(cleanSettings[p.key] ?? 0)
+  }));
 
-    // 找到第一个 >0 的奖项索引
-    const firstValidIndex = prizesWithTotal.findIndex(p => p.total > 0);
-    if (firstValidIndex === -1) {
-      throw new Error('配置中没有任何有效奖项（所有奖项人数均为 0）');
+  const hotpotIndex = prizeDefs.findIndex(p => p.key === 'hotpot-prize');
+  const firstPrizeIndex = prizeDefs.findIndex(p => p.key === '1st-prize');
+  if (firstPrizeIndex === -1) {
+    throw new Error('奖项定义中缺少 "1st-prize"');
+  }
+
+  // 火锅奖不参与连续起点判断
+  const hotpotTotal = prizesWithTotal[hotpotIndex]?.total ?? 0;
+
+  // 从六等奖开始查找第一个 >0 的奖项，作为连续起点
+  let startIdx = -1;
+  for (let i = hotpotIndex + 1; i <= firstPrizeIndex; i++) {
+    if (prizesWithTotal[i].total > 0) {
+      startIdx = i;
+      break;
     }
+  }
 
-    // 从第一个有效奖项开始，一直到“一等奖”必须全部 >0
-    const onePrizeIndex = prizesWithTotal.findIndex(p => p.key === '1st-prize');
-
-    for (let i = firstValidIndex; i <= onePrizeIndex; i++) {
+  if (startIdx !== -1) {
+    // 从这个起点到一等奖，必须全部 > 0
+    for (let i = startIdx; i <= firstPrizeIndex; i++) {
       if (prizesWithTotal[i].total <= 0) {
+        const startName = prizesWithTotal[startIdx].name;
+        const badName = prizesWithTotal[i].name;
         throw new Error(
-          `奖项配置不连续！\n\n从 "${prizesWithTotal[firstValidIndex].name}" 开始，` +
-          `必须连续抽到一等奖，中间不能有 0 人奖项。\n` +
-          `错误位置：${prizesWithTotal[i].name} = ${prizesWithTotal[i].total} 人`
+          `奖项设置不连续！\n` +
+          `从 "${startName}" 开始，到一等奖之间不能有数量为 0 的奖项。\n` +
+          `问题奖项：${badName} (数量=0)`
         );
       }
     }
+  } else {
+    // 六等奖到一等奖全为 0
+    if (hotpotTotal <= 0) {
+      const grandTotal = prizesWithTotal.find(p => p.key === 'grand-prize')?.total ?? 0;
+      if (grandTotal <= 0) {
+        throw new Error('所有奖项数量均为 0，至少设置一个奖项！');
+      }
+    }
+    // 火锅奖 >0 + 后面全 0 → 允许
+  }
 
-    // 特等奖允许为 0，返回最终有效的奖项列表（包含特等奖如果 >0）
-    const validPrizes = prizesWithTotal.filter((p, index) => 
-      index >= firstValidIndex && (p.total > 0 || p.key === 'grand-prize')
-    );
-
-    return { validPrizes, prizesWithTotal };
-  };
+  const validPrizes = prizesWithTotal.filter(p => p.total > 0);
+  return { validPrizes, prizesWithTotal };
+};
 
     // 新增：刷新配置按钮逻辑（和启动加载完全一致的检查）
     const refreshConfig = async () => {

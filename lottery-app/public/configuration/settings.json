@@ -11,7 +11,7 @@
   "display_fields": 2,
 
   "//grand-prize说明": "特等奖获奖人数（0 表示无特等奖）",
-  "grand-prize": 0,
+  "grand-prize": 1,
 
   "//1st-prize说明": "一等奖获奖人数",
   "1st-prize": 1,
@@ -29,7 +29,7 @@
   "5th-prize": 5,
 
   "//6th-prize说明": "六等奖获奖人数（从这里开始抽取）",
-  "6th-prize": 0,
+  "6th-prize": 6,
 
   "//hotpot-prize说明": "火锅等奖获奖人数",
   "hotpot-prize": 10,
