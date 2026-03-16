@@ -204,11 +204,10 @@ function App() {
       console.log(`重新读取完成，有效人数: ${data.length}`);
 
       // 生成奖项列表
-      const valid = prizeDefs
-        .map(p => ({ ...p, total: Number(cleanSettings[p.key] ?? 0) }))
-        .filter(p => p.total > 0);
+      // === 新增：严格校验奖项连续性规则（必须通过才能继续创建文件和进入全屏）===
+      const { validPrizes: newValidPrizes } = validatePrizes(cleanSettings);
 
-      if (valid.length === 0) throw new Error('配置中没有有效奖项');
+      setValidPrizes(newValidPrizes);
 
       setValidPrizes(valid);
 
@@ -346,8 +345,42 @@ function App() {
     }
   };
 
+    // 新增：严格校验奖项连续性规则
+  const validatePrizes = (cleanSettings) => {
+    const prizesWithTotal = prizeDefs.map(p => ({
+      ...p,
+      total: Number(cleanSettings[p.key] ?? 0)
+    }));
+
+    // 找到第一个 >0 的奖项索引
+    const firstValidIndex = prizesWithTotal.findIndex(p => p.total > 0);
+    if (firstValidIndex === -1) {
+      throw new Error('配置中没有任何有效奖项（所有奖项人数均为 0）');
+    }
+
+    // 从第一个有效奖项开始，一直到“一等奖”必须全部 >0
+    const onePrizeIndex = prizesWithTotal.findIndex(p => p.key === '1st-prize');
+
+    for (let i = firstValidIndex; i <= onePrizeIndex; i++) {
+      if (prizesWithTotal[i].total <= 0) {
+        throw new Error(
+          `奖项配置不连续！\n\n从 "${prizesWithTotal[firstValidIndex].name}" 开始，` +
+          `必须连续抽到一等奖，中间不能有 0 人奖项。\n` +
+          `错误位置：${prizesWithTotal[i].name} = ${prizesWithTotal[i].total} 人`
+        );
+      }
+    }
+
+    // 特等奖允许为 0，返回最终有效的奖项列表（包含特等奖如果 >0）
+    const validPrizes = prizesWithTotal.filter((p, index) => 
+      index >= firstValidIndex && (p.total > 0 || p.key === 'grand-prize')
+    );
+
+    return { validPrizes, prizesWithTotal };
+  };
+
     // 新增：刷新配置按钮逻辑（和启动加载完全一致的检查）
-  const refreshConfig = async () => {
+    const refreshConfig = async () => {
     setLoading(true);
     try {
       console.log('手动刷新配置...');
@@ -384,22 +417,19 @@ function App() {
 
       if (data.length === 0) throw new Error('名单中没有有效参与者（缺少 id 字段或全部被过滤）');
 
+      // === 新增：严格校验奖项规则 ===
+      const { validPrizes: newValidPrizes } = validatePrizes(cleanSettings);
+
       // 更新状态
       setSettings(cleanSettings);
       setParticipants(data);
+      setValidPrizes(newValidPrizes);
 
-      const valid = prizeDefs
-        .map(p => ({ ...p, total: Number(cleanSettings[p.key] ?? 0) }))
-        .filter(p => p.total > 0);
-
-      setValidPrizes(valid);
-
-      console.log(`刷新成功！有效人数: ${data.length} 人，有效奖项: ${valid.length} 个`);
-      alert(`✅ 配置已刷新！\n\n当前参与人数：${data.length} 人\n有效奖项：${valid.map(p => p.name).join('、') || '无'}`);
+      alert(`✅ 配置刷新成功！\n\n当前参与人数：${data.length} 人\n将抽取的奖项：${newValidPrizes.map(p => p.name).join(' → ')}`);
 
     } catch (err) {
-      console.error('刷新配置失败:', err);
-      alert(`❌ 刷新失败：\n${err.message}\n\n请检查 configuration/settings.json 和 participants.csv 文件是否正确！`);
+      console.error('刷新失败:', err);
+      alert(`❌ 配置校验失败：\n\n${err.message}`);
     } finally {
       setLoading(false);
     }
