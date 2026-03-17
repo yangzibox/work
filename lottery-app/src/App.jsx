@@ -55,6 +55,9 @@ function App() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const [pred1stId, setPred1stId] = useState('');
+  const [predGrandId, setPredGrandId] = useState('');
+
   const isTauri = !!window.__TAURI__;
 
 
@@ -174,6 +177,8 @@ function App() {
         Object.entries(rawSettings).filter(([k]) => !k.startsWith('//'))
       );
       setSettings(cleanSettings);
+	  setPred1stId(cleanSettings['1st-prize-pred'] || '');
+      setPredGrandId(cleanSettings['grand-prize-pred'] || '');
 
       // 重新读取 participants.csv
       const csvPath = cleanSettings.participants || 'configuration/participants.csv';
@@ -280,72 +285,117 @@ function App() {
     }
 
     if (screen === 'rolling') {
-      const currentPrize = validPrizes[currentPrizeIndex];
-      if (!currentPrize) return;
+  const currentPrize = validPrizes[currentPrizeIndex];
+  if (!currentPrize) return;
 
-      const available = participants.filter(p => !usedIds.has(p.id));
+  // 先过滤掉所有已中奖的
+  let available = participants.filter(p => !usedIds.has(p.id));
 
-      if (available.length < currentPrize.total) {
-        alert(`剩余可用人数 (${available.length}) 不足以抽出 ${currentPrize.total} 人！`);
-        setScreen('prize_guide');
-        return;
+  // 排除内定人员（让他们留到对应奖项）
+  if (pred1stId && currentPrize.key !== '1st-prize') {
+    available = available.filter(p => p.id !== pred1stId);
+  }
+  if (predGrandId && currentPrize.key !== 'grand-prize') {
+    available = available.filter(p => p.id !== predGrandId);
+  }
+
+  if (available.length < currentPrize.total) {
+    alert(`剩余可用人数 (${available.length}) 不足以抽出 ${currentPrize.total} 人！`);
+    setScreen('prize_guide');
+    return;
+  }
+
+  let winners = [];
+
+  // 处理一等奖内定
+  if (currentPrize.key === '1st-prize' && pred1stId) {
+    const predPerson = participants.find(p => p.id === pred1stId);
+    // 确认内定人员还在可用列表（理论上应该在，因为前面排除了）
+    if (predPerson && available.some(p => p.id === pred1stId)) {
+      winners.push(predPerson);
+      console.log(`一等奖内定中奖：${predPerson.name} (${predPerson.id})`);
+
+      // 如果名额 >1，从剩余人员随机抽
+      if (currentPrize.total > 1) {
+        const remaining = available.filter(p => p.id !== pred1stId);
+        const shuffled = [...remaining].sort(() => Math.random() - 0.5);
+        winners = winners.concat(shuffled.slice(0, currentPrize.total - 1));
       }
+    }
+  }
 
-      const shuffled = [...available].sort(() => Math.random() - 0.5);
-      const winners = shuffled.slice(0, currentPrize.total);
+  // 处理特等奖内定
+  else if (currentPrize.key === 'grand-prize' && predGrandId) {
+    const predPerson = participants.find(p => p.id === predGrandId);
+    if (predPerson && available.some(p => p.id === predGrandId)) {
+      winners.push(predPerson);
+      console.log(`特等奖内定中奖：${predPerson.name} (${predPerson.id})`);
 
-      setUsedIds(prev => {
-        const next = new Set(prev);
-        winners.forEach(w => next.add(w.id));
-        return next;
+      if (currentPrize.total > 1) {
+        const remaining = available.filter(p => p.id !== predGrandId);
+        const shuffled = [...remaining].sort(() => Math.random() - 0.5);
+        winners = winners.concat(shuffled.slice(0, currentPrize.total - 1));
+      }
+    }
+  }
+
+  // 如果没有内定或内定无效，正常随机抽
+  if (winners.length === 0) {
+    const shuffled = [...available].sort(() => Math.random() - 0.5);
+    winners = shuffled.slice(0, currentPrize.total);
+  }
+
+  // 更新已中奖记录
+  setUsedIds(prev => {
+    const next = new Set(prev);
+    winners.forEach(w => next.add(w.id));
+    return next;
+  });
+
+  setCurrentRoundWinners(winners);
+  setScreen('result');
+
+  // 写入结果文件（你原有代码保持不变）
+  if (isTauri && resultFilePath) {
+    try {
+      const fs = await import('@tauri-apps/plugin-fs');
+      const { open, BaseDirectory } = fs;
+
+      const now = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+
+      const lines = winners.map(w => {
+        const fields = [
+          currentPrize.name,
+          now,
+          w.id || '',
+          w.name || '',
+          w.职务 || '',
+          w.部门 || ''
+        ];
+        return fields.map(f => `"${String(f).replace(/"/g, '""')}"`).join(',');
       });
 
-      setCurrentRoundWinners(winners);
-      setScreen('result');
+      const content = lines.join('\n') + '\n';
 
-      // 写入结果文件（你稳定版原封不动）
-      if (isTauri && resultFilePath) {
-        try {
-          const fs = await import('@tauri-apps/plugin-fs');
-          const { open, BaseDirectory } = fs;
+      const file = await open(resultFilePath, {
+        baseDir: BaseDirectory.AppLocalData,
+        append: true,
+        create: true
+      });
 
-          const now = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+      await file.write(new TextEncoder().encode(content));
 
-          const lines = winners.map(w => {
-            const fields = [
-              currentPrize.name,
-              now,
-              w.id || '',
-              w.name || '',
-              w.职务 || '',
-              w.部门 || ''
-            ];
-            return fields.map(f => `"${String(f).replace(/"/g, '""')}"`).join(',');
-          });
-
-          const content = lines.join('\n') + '\n';
-
-          const file = await open(resultFilePath, {
-            baseDir: BaseDirectory.AppLocalData,
-            append: true,
-            create: true
-          });
-
-          await file.write(new TextEncoder().encode(content));
-          // await file.close();  // 你稳定版去掉了，没问题
-
-          console.log(`✅ 已追加 ${winners.length} 条记录到 ${resultFilePath}`);
-
-        } catch (err) {
-          console.error('❌ 写入失败:', err);
-          alert('写入中奖结果失败，请查看控制台');
-        }
-      } else {
-        console.log('[非 Tauri / 路径为空] 本轮中奖（未写入文件）:', winners);
-      }
-
-      return;
+      console.log(`✅ 已追加 ${winners.length} 条记录到 ${resultFilePath}`);
+    } catch (err) {
+      console.error('❌ 写入失败:', err);
+      alert('写入中奖结果失败，请查看控制台');
     }
+  } else {
+    console.log('[非 Tauri / 路径为空] 本轮中奖（未写入文件）:', winners);
+  }
+
+  return;
+}
 
     if (screen === 'result') {
       setCurrentRoundWinners([]);

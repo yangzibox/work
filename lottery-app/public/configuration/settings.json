@@ -11,7 +11,7 @@
   "display_fields": 2,
 
   "//grand-prize说明": "特等奖获奖人数（0 表示无特等奖）",
-  "grand-prize": 1,
+  "grand-prize": 0,
 
   "//1st-prize说明": "一等奖获奖人数",
   "1st-prize": 1,
@@ -34,9 +34,9 @@
   "//hotpot-prize说明": "火锅等奖获奖人数",
   "hotpot-prize": 12,
 
-  "//grand-prize-pred说明": "特等奖内定人 id（为空字符串表示无内定），抽特等奖时此人一定中奖",
+  "//grand-prize-pred说明": "特等奖 id",
   "grand-prize-pred": "",
 
-  "//1st-prize-pred说明": "一等奖内定人 id（为空字符串表示无内定），抽一等奖时此人一定中奖",
-  "1st-prize-pred": ""
+  "//1st-prize-pred说明": "一等奖 id",
+  "1st-prize-pred": "A020"
 }
