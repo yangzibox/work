@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { appLocalDataDir } from '@tauri-apps/api/path';
+import { invoke } from '@tauri-apps/api/core';
 import './App.css';
 
 // 简单 CSV 行解析（支持带引号的字段）
@@ -554,26 +556,28 @@ function App() {
           </button>
           
           <button 
-            className="about-btn"
-            onClick={async () => {
-              let outputPath = '获取失败，请手动搜索 output 文件夹';
-              try {
-                const appData = await appLocalDataDir();
-                outputPath = `${appData}output/`;
-              } catch (err) {
-                console.error('获取路径失败:', err);
-              }
+					className="about-btn"
+					onClick={async () => {
+						let outputPath = '获取失败，请手动搜索 output 文件夹';
+						try {
+							const appData = await appLocalDataDir();
+							outputPath = `\n${appData}\n下的output目录`;
+							console.log('成功获取路径：', outputPath);  // 加这行方便调试
+						} catch (err) {
+							console.error('获取路径失败:', err);
+							outputPath = `错误：${err.message || '未知错误'}`;
+						}
 
-              alert(
-                '年会抽奖桌面程序 v1.0\n' +
-                '作者：yangzibox@163.com\n' +
-                'GitHub: https://github.com/yangzibox/work\n\n' +
-                `输出路径: ${outputPath}`
-              );
-            }}
-          >
-            关于
-          </button>
+						alert(
+							'年会抽奖桌面程序 v1.0\n' +
+							'作者：yangzibox@163.com\n' +
+							'GitHub: https://github.com/yangzibox/work\n\n' +
+							`输出路径: ${outputPath}`
+						);
+					}}
+				>
+					关于
+				</button>
         </div>
 
         <button className="start-button" onClick={enterFullscreen} disabled={loading}>
