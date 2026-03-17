@@ -1,29 +1,33 @@
 body, html {
-  margin: 0;
-  padding: 0;
-  height: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 100% !important;
+  width: 100% !important;
   font-family: 'Microsoft YaHei', sans-serif;
   background: #000;
   color: #fff;
-  overflow: hidden;
+  overflow: hidden !important;
 }
 
 .main-screen {
   height: 100vh;
+  width: 100vw;
+  margin: 0 !important;
+  padding: 0 !important;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1e3c72, #2a5298);
+  background: linear-gradient(135deg, #c8102e, #ff4d4f);  /* 红色热烈渐变 */
 }
 
 .start-button {
   padding: 20px 60px;
   font-size: 36px;
-  background: #ff4d4f;
+  background: #ffd700;  /* 金黄 */
   border: none;
   border-radius: 12px;
-  color: white;
+  color: #c8102e;  /* 红色文字 */
   cursor: pointer;
   margin: 20px;
   transition: all 0.15s ease;
@@ -31,46 +35,48 @@ body, html {
 }
 
 .start-button:hover {
-  background: #ff6666;
+  background: #ffeb3b;
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
 }
 
 .start-button:active {
   transform: translateY(4px) scale(0.96);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
-  background: #e63946;
+  background: #ffcc00;
 }
 
 .start-button:disabled {
   background: #666;
+  color: #aaa;
   cursor: not-allowed;
 }
 
 .refresh-button {
   padding: 10px 22px;
   font-size: 18px;
-  background: rgba(82, 196, 26, 0.9);
+  background: rgba(255, 215, 0, 0.9);  /* 金黄 */
   border: none;
   border-radius: 8px;
-  color: white;
+  color: #c8102e;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .refresh-button:hover {
-  background: #52c41a;
+  background: #ffeb3b;
   transform: scale(1.05);
 }
 
 .refresh-button:disabled {
   background: #666;
+  color: #aaa;
   cursor: not-allowed;
 }
 
 .about-btn {
   padding: 10px 22px;
   font-size: 18px;
-  background: rgba(24, 144, 255, 0.9);
+  background: rgba(255, 69, 0, 0.9);  /* 橙红 */
   border: none;
   border-radius: 8px;
   color: white;
@@ -79,7 +85,7 @@ body, html {
 }
 
 .about-btn:hover {
-  background: #1890ff;
+  background: #ff4500;
   transform: scale(1.05);
 }
 
@@ -93,39 +99,55 @@ body, html {
 }
 
 .fullscreen {
-  height: 100vh;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  height: 100vh !important;
+  width: 100vw !important;
+  margin: 0 !important;
+  padding: 0 !important;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;        /* 核心：垂直居中所有子元素 */
-  background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
+  align-items: stretch;
+  justify-content: center;
+  background: linear-gradient(to bottom, #c8102e, #ff4d4f, #000);  /* 红色渐变 + 黑底 */
   text-align: center;
-  padding: 0;                     /* 去掉任何 padding，避免推移 */
+  overflow: hidden;
+  box-sizing: border-box;
+  z-index: 1;
 }
 
 .guide-title {
-  margin-top: 15vh;
-  font-size: 4.5rem;
-  margin-bottom: 2rem;
+  font-size: 6vw;
+  margin: 10vh 0 2rem 0;
+  width: 100vw;
+  color: #ffeb3b;
 }
 
 .prize-name {
-  color: #ffeb3b;
-  text-shadow: 0 0 20px #ffeb3b;
+  color: #ffffff;
+  text-shadow: 0 0 20px #ff0000;
 }
 
 .guide-count {
-  font-size: 3.8rem;
-  color: #ffd700;
+  font-size: 4vw;
+  color: #ffeb3b;
   margin: 1rem 0 4rem 0;
   text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
 }
 
 .rolling-text {
-  font-size: 6rem;
-  min-height: 120px;
+  font-size: 10vw;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
   animation: blink 1.2s infinite alternate;
-  text-shadow: 0 0 30px #fff;
+  text-shadow: 0 0 30px #ff0000;
+  color: #ffeb3b;
 }
 
 @keyframes blink {
@@ -134,39 +156,56 @@ body, html {
 }
 
 .result-screen {
-  height: 100vh;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  height: 100vh !important;
+  width: 100vw !important;
+  margin: 0 !important;
+  padding: 8vh 5vw 18vh 5vw !important;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding-top: 100px;             /* 整体往下移，标题和网格间距更大 */
-  background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
+  background: linear-gradient(to bottom, #c8102e, #ff4d4f, #000);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .result-screen h1 {
-  font-size: 4rem;
+  font-size: 5vw;
   color: #ffeb3b;
-  text-shadow: 0 0 30px #ffeb3b;
-  margin: 0 0 60px 0;             /* 标题底部大间距，网格往下移 */
+  text-shadow: 0 0 30px #ff0000;
+  margin: 0 0 6vh 0 !important;
+  width: 100vw;
+  text-align: center;
+  flex-shrink: 0;
 }
 
 .result-screen .winners-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 20px 28px;
-  width: 100%;
+  padding: 0 5vw 18vh 5vw;
+  width: 100vw;
   max-width: 100vw;
   max-height: 70vh;
   overflow-y: auto;
   overflow-x: hidden;
   scroll-behavior: smooth;
   scrollbar-width: thin;
-  scrollbar-color: #ffd700 rgba(30, 30, 30, 0.8);
-  /* ... 保持原有 display: grid; grid-template-columns 等 ... */
-  padding: 0 5vw 140px 5vw;      /* 左右各留 5% 视口宽度（vw单位，随屏幕大小自适应） */
-  /* 或用固定像素： padding: 0 60px 140px 60px; （左右各留 60px） */
-  box-sizing: border-box;        /* 确保 padding 不增加总宽 */
+  scrollbar-color: #ffeb3b rgba(200, 16, 46, 0.8);
+  box-sizing: border-box;
+}
+
+.result-screen .winners-grid.center-mode {
+  min-height: 65vh;
+  align-content: center;
+  justify-content: center;
+}
+
+.result-screen .winners-grid.scroll-mode {
+  align-content: start;
 }
 
 .result-screen .winners-grid::-webkit-scrollbar {
@@ -174,39 +213,26 @@ body, html {
 }
 
 .result-screen .winners-grid::-webkit-scrollbar-track {
-  background: rgba(30, 30, 30, 0.8);
+  background: rgba(200, 16, 46, 0.8);
   border-radius: 7px;
 }
 
 .result-screen .winners-grid::-webkit-scrollbar-thumb {
-  background: linear-gradient(#ffd700, #ffeb3b);
+  background: linear-gradient(#ffeb3b, #ffd700);
   border-radius: 7px;
-  border: 3px solid rgba(30, 30, 30, 0.8);
+  border: 3px solid rgba(200, 16, 46, 0.8);
 }
 
 .result-screen .winners-grid::-webkit-scrollbar-thumb:hover {
-  background: #ffeb3b;
+  background: #fff176;
 }
-
-/* 人少居中模式 */
-.result-screen .winners-grid.center-mode {
-  min-height: 65vh;
-  align-content: center;
-  justify-content: center;
-}
-
-/* 人多滚动模式 */
-.result-screen .winners-grid.scroll-mode {
-  align-content: start;
-}
-
 
 .result-screen .winner-item {
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(200, 16, 46, 0.65);
   border-radius: 12px;
   padding: 12px 10px;
   text-align: center;
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
   transition: transform 0.2s ease;
   min-width: 220px;
 }
@@ -219,12 +245,12 @@ body, html {
   font-size: 1.7rem;
   font-weight: bold;
   margin-bottom: 4px;
-  color: #fff;
+  color: #ffeb3b;
 }
 
 .result-screen .winner-id {
   font-size: 1.2rem;
-  color: #ffd700;
+  color: #ffffff;
   margin-bottom: 4px;
 }
 
@@ -250,8 +276,8 @@ body, html {
   transform: translateX(-50%);
   font-size: 1.1rem;
   font-weight: normal;
-  color: rgba(255, 255, 255, 0.45);
-  background: rgba(0, 0, 0, 0.15);
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(200, 16, 46, 0.5);
   padding: 4px 16px;
   border-radius: 6px;
   text-align: center;
@@ -263,5 +289,12 @@ body, html {
 .finish-title {
   font-size: 8rem;
   color: #ffeb3b;
-  text-shadow: 0 0 40px #ffeb3b;
+  text-shadow: 0 0 40px #ff0000;
+  text-align: center;
+  margin: 0 auto;
+  width: 90vw;
+  max-width: 90vw;
+  line-height: 1.2;
+  letter-spacing: 0.05em;
+  padding: 0 0.1em;
 }

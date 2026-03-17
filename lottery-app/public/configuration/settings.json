@@ -32,11 +32,11 @@
   "6th-prize": 6,
 
   "//hotpot-prize说明": "火锅等奖获奖人数",
-  "hotpot-prize": 12,
+  "hotpot-prize": 20,
 
   "//grand-prize-pred说明": "特等奖 id",
   "grand-prize-pred": "",
 
   "//1st-prize-pred说明": "一等奖 id",
-  "1st-prize-pred": "A020"
+  "1st-prize-pred": ""
 }
