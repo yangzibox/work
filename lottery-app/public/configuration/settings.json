@@ -32,7 +32,7 @@
   "6th-prize": 6,
 
   "//hotpot-prize说明": "火锅等奖获奖人数",
-  "hotpot-prize": 10,
+  "hotpot-prize": 12,
 
   "//grand-prize-pred说明": "特等奖内定人 id（为空字符串表示无内定），抽特等奖时此人一定中奖",
   "grand-prize-pred": "",

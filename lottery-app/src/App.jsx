@@ -57,50 +57,6 @@ function App() {
 
   const isTauri = !!window.__TAURI__;
 
-    const validatePrizeContinuity = (cleanSettings) => {
-    const allPrizes = prizeDefs.map(p => ({
-      ...p,
-      total: Number(cleanSettings[p.key] ?? 0)
-    }));
-
-    // 找到第一个 >0 的奖项索引（从火锅奖开始，排除特等奖）
-    let startIdx = -1;
-    for (let i = 0; i < prizeDefs.length - 1; i++) {
-      if (allPrizes[i].total > 0) {
-        startIdx = i;
-        break;
-      }
-    }
-
-    // 如果有起点（常规奖有 >0），检查从起点到一等奖连续
-    if (startIdx !== -1) {
-      const firstPrizeIdx = prizeDefs.findIndex(p => p.key === '1st-prize');
-      if (firstPrizeIdx === -1) {
-        alert('奖项定义中缺少 "1st-prize"，请检查 prizeDefs');
-        return false;
-      }
-
-      for (let i = startIdx; i <= firstPrizeIdx; i++) {
-        if (allPrizes[i].total <= 0) {
-          const startName = allPrizes[startIdx].name;
-          const badName = allPrizes[i].name;
-          alert(
-            `奖项数量不连续！\n` +
-            `从 "${startName}" (${allPrizes[startIdx].total}人) 开始，\n` +
-            `到一等奖之间不允许出现数量为0的奖项。\n` +
-            `违规奖项：${badName} = 0`
-          );
-          return false;
-        }
-      }
-    }
-
-    // 特等奖独立判断，不参与连续校验
-    // 全部常规奖为0，但特等奖 >0 → 允许
-    // 全部为0 → 下面简单过滤会处理（valid.length === 0 报错）
-
-    return true;
-  };
 
   // 程序启动时读取一次配置和名单（保持主界面人数正常）
   useEffect(() => {
@@ -255,7 +211,7 @@ function App() {
         newValidPrizes = result.validPrizes;
         setValidPrizes(newValidPrizes);
       } catch (err) {
-        alert(`开始抽奖失败：奖项配置有问题\n\n${err.message}`);
+        alert(`❌ 开始抽奖校验失败：\n\n${err.message}\n\n请修正 settings.json 后再尝试开始抽奖！`);
         setScreen('ready');    // 返回主界面
         setLoading(false);
         return;                // 停止后续全屏、文件创建等
@@ -263,13 +219,12 @@ function App() {
 
       // 如果校验通过，但 validPrizes 为空（理论上不会，但防呆）
       if (newValidPrizes.length === 0) {
-  alert('配置中没有有效奖项，请检查 settings.json');
+  alert(`❌ 配置中没有有效奖项（所有奖项数量均为 0）\n\n请检查 settings.json 并至少设置一个奖项！`);
   setScreen('ready');
   setLoading(false);
   return;
 }
 
-      setValidPrizes(valid);
 
       // 生成全新的 CSV 文件（完全照抄你稳定版的创建方式：writeTextFile + exists 检查）
       if (isTauri) {
@@ -504,7 +459,11 @@ function App() {
       setParticipants(data);
       setValidPrizes(newValidPrizes);
 
-      alert(`✅ 配置刷新成功！\n\n当前参与人数：${data.length} 人\n将抽取的奖项：${newValidPrizes.map(p => p.name).join(' → ')}`);
+      alert(
+  `✅ 配置刷新成功！\n\n` +
+  `当前参与人数：${data.length} 人\n` +
+  `将抽取的奖项：${newValidPrizes.map(p => `${p.name}(${p.total})`).join(' → ')}`
+);
 
     } catch (err) {
       console.error('刷新失败:', err);
@@ -543,9 +502,9 @@ function App() {
           
           <button 
             className="about-button"
-            onClick={() => alert('年会抽奖桌面程序 v1.0\n作者：yangzibox\nGitHub: https://github.com/yangzibox/work')}
+            onClick={() => alert('年会抽奖桌面程序 v1.0\n作者：yangzibox@163.com\nGitHub: https://github.com/yangzibox/work\n输出路径: %APPDATA%\\lottery-app\\output\\')}
           >
-            About
+            关于
           </button>
         </div>
 
@@ -569,18 +528,22 @@ function App() {
     return (
       <div className="fullscreen result-screen">
         <h1>恭喜以下幸运儿！</h1>
-        <div className="winners-grid">
-          {currentRoundWinners.map((w, i) => (
-            <div key={w.id} className="winner-item">
-              <div className="winner-name">{w.name}</div>
-              <div className="winner-id">{w.id}</div>
-              <div className="winner-extra">
-                {w.职务 || ''} {w.部门 || ''}
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="tips">空格键 → 继续下一轮　　Esc → 退出</p>
+
+		<div 
+		className={`winners-grid ${currentRoundWinners.length <= 12 ? 'center-mode' : 'scroll-mode'}`}
+		>
+		{currentRoundWinners.map((w, i) => (
+		<div key={w.id} className="winner-item">
+		<div className="winner-name">{w.name}</div>
+		<div className="winner-id">{w.id}</div>
+		<div className="winner-extra">
+		{w.职务 || ''} {w.部门 || ''}
+		</div>
+		</div>
+		))}
+		</div>
+
+        <p className="tips">空格键 → 继续下一轮　　Esc → 退出　　人数多时可滚动查看</p>
       </div>
     );
   }
