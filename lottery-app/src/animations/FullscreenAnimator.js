@@ -1,132 +1,166 @@
 // src/animations/FullscreenAnimator.js
-
 import { useRef, useState, useCallback, useEffect } from 'react';
-import confetti from 'canvas-confetti';  // npm install canvas-confetti
-
-// 可选：音效（后面再加，先留注释）
-/*
-const rollSound = new Audio('/sounds/roll.mp3');
-const winnerSound = new Audio('/sounds/winner.mp3');
-*/
+import confetti from 'canvas-confetti';
 
 export function useFullscreenAnimator({
-  participants = [],                // 参与者数组
-  onIndexChange = () => {},         // 每帧更新 currentIndex 的回调
-  onStop = () => {},                // 动画停止后回调（可用于计算中奖者）
-  rollIntervalMs = 60,              // 初始滚动速度（ms/帧）
-  slowDownDuration = 3000,          // 减速阶段持续时间
-  shakeDuration = 1200,             // 最终晃动阶段时间
+  participants = [],
+  onIndexChange = () => {},
+  onComplete = () => {},        // 改名，更清晰：动画完全结束
+  baseInterval = 50,            // 初始最快速度（越小越快）
+  slowdownStartAfter = 4000,    // 滚动多久后开始减速（ms）
+  slowdownDuration = 2800,      // 减速阶段时长
+  finalSlowSteps = 8,           // 最后故意慢下来的格子数
+  shakeDuration = 1400,         // 最终晃动阶段
+  onShakeStart = () => {},      // 可选：晃动开始时的回调（可加重音效）
 }) {
   const [isAnimating, setIsAnimating] = useState(false);
-  const [phase, setPhase] = useState('idle'); // idle → rolling → slowing → shaking → stopped
-  const currentIndexRef = useRef(0);
+  const [phase, setPhase] = useState('idle'); // idle → rolling → slowing → finalSlow → shaking → stopped
+  const [currentIndex, setCurrentIndex] = useState(0);
+
   const rafRef = useRef(null);
   const startTimeRef = useRef(0);
-  const speedRef = useRef(rollIntervalMs);
+  const lastTickRef = useRef(0);
+  const targetIndexRef = useRef(-1);   // 用于内定/预测
 
-  // 开始动画
-  const start = useCallback(() => {
-    if (isAnimating || participants.length === 0) return;
+  const totalParticipants = participants.length;
+
+  const getNextInterval = useCallback((elapsed) => {
+    if (phase === 'rolling') {
+      if (elapsed >= slowdownStartAfter) {
+        setPhase('slowing');
+      }
+      return baseInterval;
+    }
+
+    if (phase === 'slowing') {
+      const progress = Math.min(1, (elapsed - slowdownStartAfter) / slowdownDuration);
+      // ease-out quad
+      const eased = 1 - (1 - progress) ** 4;
+      return baseInterval + (600 - baseInterval) * eased;
+    }
+
+    if (phase === 'finalSlow') {
+      return 220 + Math.random() * 180; // 220~400ms 随机感
+    }
+
+    if (phase === 'shaking') {
+      return 280 + Math.sin(elapsed / 120) * 140; // 140~420ms 晃动
+    }
+
+    return 100;
+  }, [phase, baseInterval, slowdownStartAfter, slowdownDuration]);
+
+  const tick = useCallback(() => {
+    const now = performance.now();
+    const elapsedTotal = now - startTimeRef.current;
+
+    if (now - lastTickRef.current >= getNextInterval(elapsedTotal)) {
+      lastTickRef.current = now;
+
+      if (phase === 'finalSlow' || phase === 'shaking') {
+        // 最后阶段允许不连续跳动，制造“找不着北”的感觉
+        setCurrentIndex(prev => (prev + (Math.random() > 0.4 ? 1 : 2)) % totalParticipants);
+      } else {
+        setCurrentIndex(prev => (prev + 1) % totalParticipants);
+      }
+
+      onIndexChange(currentIndex);
+    }
+
+    rafRef.current = requestAnimationFrame(tick);
+  }, [phase, totalParticipants, onIndexChange, currentIndex, getNextInterval]);
+
+  const start = useCallback((initialIndex = 0) => {
+    if (isAnimating || totalParticipants <= 1) return;
 
     setIsAnimating(true);
     setPhase('rolling');
-    currentIndexRef.current = 0;
+    setCurrentIndex(initialIndex);
+    targetIndexRef.current = -1;
+
     startTimeRef.current = performance.now();
+    lastTickRef.current = startTimeRef.current;
 
-    // 可选：播放开始音效
-    // rollSound.currentTime = 0;
-    // rollSound.loop = true;
-    // rollSound.play().catch(() => {});
+    rafRef.current = requestAnimationFrame(tick);
 
-    const animate = () => {
-      const now = performance.now();
-      const elapsed = now - startTimeRef.current;
+    // 可选：未来在这里播放背景滚动音效
+  }, [isAnimating, totalParticipants, tick]);
 
-      let nextInterval = speedRef.current;
-
-      if (phase === 'slowing') {
-        // 线性减速（可改成 ease-out）
-        const progress = elapsed / slowDownDuration;
-        nextInterval = rollIntervalMs + (400 - rollIntervalMs) * progress;
-        nextInterval = Math.min(nextInterval, 400);
-      } else if (phase === 'shaking') {
-        // 晃动阶段：速度在 300~500ms 间抖动
-        nextInterval = 300 + Math.sin(elapsed / 150) * 200;
-      }
-
-      if (now - startTimeRef.current >= nextInterval) {
-        currentIndexRef.current = (currentIndexRef.current + 1) % participants.length;
-        onIndexChange(currentIndexRef.current);
-        startTimeRef.current = now; // 更新上次 tick 时间
-      }
-
-      rafRef.current = requestAnimationFrame(animate);
-    };
-
-    rafRef.current = requestAnimationFrame(animate);
-  }, [participants.length, phase, onIndexChange]);
-
-  // 停止动画（带减速 + 晃动）
-  const stop = useCallback((targetIndex = -1) => {
+  const stop = useCallback((forcedTargetIndex = -1) => {
     if (!isAnimating) return;
+
+    targetIndexRef.current = forcedTargetIndex >= 0 
+      ? forcedTargetIndex 
+      : currentIndex;
 
     setPhase('slowing');
 
-    // 记录目标索引（如果有内定或预测）
-    const finalTarget = targetIndex >= 0 ? targetIndex : currentIndexRef.current;
-
+    // 减速结束后进入最后几格慢动作
     setTimeout(() => {
-      setPhase('shaking');
+      setPhase('finalSlow');
 
-      // 晃动结束后强制停到目标位置
+      // 最后慢动作结束后开始晃动
       setTimeout(() => {
-        cancelAnimationFrame(rafRef.current);
-        currentIndexRef.current = finalTarget;
-        onIndexChange(finalTarget);
+        setPhase('shaking');
+        onShakeStart?.();
 
-        setPhase('stopped');
-        setIsAnimating(false);
+        // 晃动结束后强制停到目标位置
+        setTimeout(() => {
+          if (rafRef.current) {
+            cancelAnimationFrame(rafRef.current);
+            rafRef.current = null;
+          }
 
-        // 触发庆祝粒子
-        confetti({
-          particleCount: 180,
-          spread: 90,
-          origin: { y: 0.6 }
-        });
+          setCurrentIndex(targetIndexRef.current);
+          onIndexChange(targetIndexRef.current);
 
-        // 可选：播放中奖音效
-        // rollSound.pause();
-        // winnerSound.play().catch(() => {});
+          setPhase('stopped');
+          setIsAnimating(false);
 
-        onStop(finalTarget);
-      }, shakeDuration);
-    }, slowDownDuration);
-  }, [isAnimating, onIndexChange, onStop]);
+          // 庆祝
+          confetti({
+            particleCount: 220,
+            spread: 100,
+            origin: { y: 0.55 },
+            colors: ['#ffeb3b', '#ffffff', '#ff4d4f', '#ffd700'],
+          });
 
-  // 立即强制停止（紧急情况）
+          onComplete(targetIndexRef.current);
+        }, shakeDuration);
+      }, finalSlowSteps * 320); // 粗略估计最后慢动作时间
+    }, slowdownDuration);
+  }, [
+    isAnimating,
+    currentIndex,
+    onIndexChange,
+    onComplete,
+    slowdownDuration,
+    shakeDuration,
+    finalSlowSteps,
+    onShakeStart,
+  ]);
+
   const forceStop = useCallback(() => {
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
     }
     setIsAnimating(false);
     setPhase('stopped');
-    // rollSound.pause();
   }, []);
 
-  // 清理
   useEffect(() => {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      // rollSound.pause();
     };
   }, []);
 
   return {
     isAnimating,
     phase,
-    currentIndex: currentIndexRef.current,
+    currentIndex,        // 现在是 state，可直接用于渲染
     start,
-    stop,
+    stop,               // stop(目标索引) → 支持内定
     forceStop,
   };
 }

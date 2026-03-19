@@ -597,31 +597,31 @@ function App() {
   }
 
   if (screen === 'result') {
-    return (
-      <div className="fullscreen result-screen">
-        <h1>恭喜以下幸运儿！</h1>
+  return (
+    <div className="fullscreen result-screen bg-anim-active">  {/* ← 这里加了 bg-anim-active */}
+      <h1>恭喜以下幸运儿！</h1>
 
-        <div 
-          className={`winners-grid ${currentRoundWinners.length <= 12 ? 'center-mode' : 'scroll-mode'}`}
-        >
-          {currentRoundWinners.map((w, i) => (
-            <div key={w.id} className="winner-item">
-              <div className="winner-name">{w.name}</div>
-              <div className="winner-id">{w.id}</div>
-              <div className="winner-extra">
-                {w.职务 || ''} {w.部门 || ''}
-              </div>
+      <div 
+        className={`winners-grid ${currentRoundWinners.length <= 12 ? 'center-mode' : 'scroll-mode'}`}
+      >
+        {currentRoundWinners.map((w, i) => (
+          <div key={w.id} className="winner-item">
+            <div className="winner-name">{w.name}</div>
+            <div className="winner-id">{w.id}</div>
+            <div className="winner-extra">
+              {w.职务 || ''} {w.部门 || ''}
             </div>
-          ))}
-        </div>
-
-        <p className="tips">空格键 → 继续下一轮　　Esc → 退出　　人数多时可滚动查看</p>
+          </div>
+        ))}
       </div>
-    );
-  }
+
+      <p className="tips">空格键 → 继续下一轮　　Esc → 退出　　人数多时可滚动查看</p>
+    </div>
+  );
+}
 
   return (
-    <div className="fullscreen">
+    <div className={`fullscreen ${isFullscreen ? 'bg-anim-active' : ''}`}>
       {screen === 'prize_guide' ? (
         <>
           <h1 className="guide-title">
