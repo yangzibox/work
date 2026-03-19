@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.yangzibox.luckydrawbox",
   "build": {
-    "frontendDist": "./dist",
+    "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
@@ -19,7 +19,8 @@
         "resizable": true,
         "fullscreen": false,
         "visible": true,         
-        "backgroundColor": "#c8102e"
+        "backgroundColor": "#c8102e",
+		"filename": "LuckyDrawBox.exe"
       }
     ],
     "security": {
@@ -30,10 +31,6 @@
     "active": true,
     "targets": "all",
     "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
       "icons/icon.ico"
     ]
   }

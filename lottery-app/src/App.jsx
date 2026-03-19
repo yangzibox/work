@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { appLocalDataDir } from '@tauri-apps/api/path';
 import { invoke } from '@tauri-apps/api/core';
 import './App.css';
@@ -46,6 +46,13 @@ const prizeDefs = [
 let resultFilePath = null;
 
 function App() {
+	// ★ 这里放 ref 和 state（顺序随意，但 ref 通常放前面）
+  const bgmRef = useRef(null);  // ← 必须在这里定义
+
+	// 静音开关，默认不静音（有声）
+const [isMuted, setIsMuted] = useState(false);
+
+
   const [screen, setScreen] = useState('loading');
   const [participants, setParticipants] = useState([]);
   const [settings, setSettings] = useState({});
@@ -121,6 +128,36 @@ function App() {
 
     return data;
   };
+
+
+	useEffect(() => {
+  // 1. 组件首次渲染时创建 Audio（只执行一次）
+  if (!bgmRef.current) {
+    bgmRef.current = new Audio('/sounds/chinese-short-epic-30s.mp3');
+    bgmRef.current.loop = true;
+    bgmRef.current.volume = isMuted ? 0 : 0.35;
+    console.log('背景音乐实例已创建');
+  }
+
+  // 2. 同步音量（每次 isMuted 变化时更新）
+  bgmRef.current.volume = isMuted ? 0 : 0.35;
+
+  // 3. 根据全屏状态播放/暂停
+  if (isFullscreen) {
+    bgmRef.current.play().catch(err => {
+      console.log('背景音乐自动播放被阻止:', err);
+    });
+  } else {
+    bgmRef.current?.pause();
+  }
+
+  // 4. 清理
+  return () => {
+    bgmRef.current?.pause();
+  };
+}, [isFullscreen, isMuted]);  // 依赖全屏和静音状态
+
+
 
   // 程序启动时读取一次配置和名单（保持主界面人数正常）
   useEffect(() => {
@@ -583,6 +620,18 @@ function App() {
         <button className="start-button" onClick={enterFullscreen} disabled={loading}>
           {loading ? '加载中...' : '开始抽奖（全屏）'}
         </button>
+
+				{/* 新增：右下角音量开关 */}
+				<div className="mute-toggle">
+					<label>
+						<input
+							type="checkbox"
+							checked={!isMuted}
+							onChange={() => setIsMuted(prev => !prev)}
+						/>
+						<span className="speaker-icon">{!isMuted ? '🔊' : '🔇'}</span>
+					</label>
+				</div>
       </div>
     );
   }

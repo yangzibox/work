@@ -339,3 +339,45 @@ body, html {
   background-size: inherit !important;
   animation: inherit !important;
 }
+
+
+/* 右下角音量开关 */
+.mute-toggle {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  z-index: 10;
+}
+
+.mute-toggle label {
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  background: transparent;
+}
+
+.mute-toggle label:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+
+.mute-toggle input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;                 /* 完全隐藏默认小方框 */
+  width: 0;
+  height: 0;
+  margin: 0;
+  pointer-events: none;       /* 防止干扰点击 */
+}
+
+.speaker-icon {
+  font-size: 20px;
+  color: white;
+}
+
+
+/* 可选：点击时图标轻微跳动（不挤） */
+.mute-toggle input:checked + .speaker-icon {
+  transform: scale(1.05);     /* 勾选时略大一点 */
+}
+

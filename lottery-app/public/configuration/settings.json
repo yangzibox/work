@@ -1,6 +1,4 @@
 {
-  "//整体说明": "本文件为年会抽奖系统核心配置，所有路径均为相对于项目根目录的相对路径",
-
   "//participants说明": "参与者名单 CSV 文件路径，第一列必须为 id（员工号，必填），第二列为姓名（必填），后续列可选（如职务、部门）",
   "participants": "configuration/participants.csv",
 
@@ -38,5 +36,5 @@
   "grand-prize-pred": "",
 
   "//1st-prize-pred说明": "一等奖 id",
-  "1st-prize-pred": ""
+  "1st-prize-pred": "A000"
 }
