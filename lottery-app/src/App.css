@@ -1,37 +1,41 @@
+/* 全局基础 */
 body, html {
-  margin: 0 !important;
-  padding: 0 !important;
-  height: 100% !important;
-  width: 100% !important;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
   font-family: 'Microsoft YaHei', sans-serif;
   background: #000;
   color: #fff;
-  overflow: hidden !important;
+  overflow: hidden;
 }
 
+/* 主界面（非全屏） */
 .main-screen {
   height: 100vh;
   width: 100vw;
-  margin: 0 !important;
-  padding: 0 !important;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #c8102e, #ff4d4f);  /* 红色热烈渐变 */
+  background: linear-gradient(135deg, #c8102e, #ff4d4f);
+}
+
+/* 按钮通用样式（合并 start-button、refresh-button、about-btn 的 hover 效果） */
+button {
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .start-button {
   padding: 20px 60px;
   font-size: 36px;
-  background: #ffd700;  /* 金黄 */
-  border: none;
-  border-radius: 12px;
-  color: #c8102e;  /* 红色文字 */
-  cursor: pointer;
-  margin: 20px;
-  transition: all 0.15s ease;
+  background: #ffd700;
+  color: #c8102e;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  margin: 20px;
 }
 
 .start-button:hover {
@@ -45,21 +49,23 @@ body, html {
   background: #ffcc00;
 }
 
-.start-button:disabled {
+.start-button:disabled,
+.refresh-button:disabled {
   background: #666;
   color: #aaa;
   cursor: not-allowed;
 }
 
-.refresh-button {
+.refresh-button,
+.about-btn {
   padding: 10px 22px;
   font-size: 18px;
-  background: rgba(255, 215, 0, 0.9);  /* 金黄 */
-  border: none;
   border-radius: 8px;
+}
+
+.refresh-button {
+  background: rgba(255, 215, 0, 0.9);
   color: #c8102e;
-  cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .refresh-button:hover {
@@ -67,21 +73,9 @@ body, html {
   transform: scale(1.05);
 }
 
-.refresh-button:disabled {
-  background: #666;
-  color: #aaa;
-  cursor: not-allowed;
-}
-
 .about-btn {
-  padding: 10px 22px;
-  font-size: 18px;
-  background: rgba(255, 69, 0, 0.9);  /* 橙红 */
-  border: none;
-  border-radius: 8px;
+  background: rgba(255, 69, 0, 0.9);
   color: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .about-btn:hover {
@@ -89,6 +83,7 @@ body, html {
   transform: scale(1.05);
 }
 
+/* 头部按钮容器 */
 .header-buttons {
   position: fixed;
   top: 20px;
@@ -98,30 +93,46 @@ body, html {
   z-index: 9999;
 }
 
+/* 全屏基础（核心动画背景） */
 .fullscreen {
-  /* 你原有的所有样式保持 */
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  height: 100vh !important;
-  width: 100vw !important;
-  margin: 0 !important;
-  padding: 0 !important;
+  position: fixed;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
-  background: linear-gradient(to bottom, #c8102e, #ff4d4f, #000) !important;
+  background: linear-gradient(to bottom, #c8102e, #ff4d4f, #000);
   text-align: center;
   overflow: hidden;
   box-sizing: border-box;
-  z-index: 1;
-
-  /* 关键两行：必须加！ */
-  background-size: 400% 400% !important;   /* 越大流动越明显，先试 400% */
-  background-attachment: fixed;            /* 可选：防止滚动时背景移动 */
+  background-size: 600% 600%;
+  background-attachment: fixed;
 }
 
+/* 全屏动画触发 */
+.fullscreen.bg-anim-active .rolling-text {
+  background: transparent !important;
+}
+
+.fullscreen.bg-anim-active {
+  background: linear-gradient(135deg, #c8102e, #ff4d4f, #8b0000, #ff4d4f, #c8102e) !important;
+  animation: redBreath 6s ease-in-out infinite alternate !important;
+}
+
+@keyframes redBreath {
+  0%   { background-position: 0% 50%; filter: brightness(0.95); }
+  50%  { background-position: 100% 50%; filter: brightness(1.2); }
+  100% { background-position: 0% 50%; filter: brightness(0.95); }
+}
+
+/* 强制子元素不覆盖背景（result-screen、finish 等） */
+.fullscreen > *,
+.result-screen,
+.finish-title {
+  background: transparent !important;
+}
+
+/* 引导页（prize_guide） */
 .guide-title {
   font-size: 6vw;
   margin: 10vh 0 2rem 0;
@@ -141,6 +152,7 @@ body, html {
   text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
 }
 
+/* 滚动文字 */
 .rolling-text {
   font-size: 10vw;
   width: 100vw;
@@ -153,6 +165,8 @@ body, html {
   animation: blink 1.2s infinite alternate;
   text-shadow: 0 0 30px #ff0000;
   color: #ffeb3b;
+  background: transparent !important;     /* 必须透明，让底层动画透出来 */
+  pointer-events: none;                    /* 防止挡住交互（可选） */
 }
 
 @keyframes blink {
@@ -160,43 +174,22 @@ body, html {
   to   { opacity: 1; }
 }
 
-/* 额外保险：清掉 result-screen 自己的 background 声明 */
-.result-screen {
-  background: none !important;
-  background-color: transparent !important;
-}
-
-/* 最高优先级：强制 result-screen 跟随全屏的背景和动画 */
-.fullscreen.bg-anim-active .result-screen {
-  background: inherit !important;
-  background-image: inherit !important;
-  background-size: inherit !important;
-  background-position: inherit !important;
-  animation: inherit !important;
-  animation-duration: inherit !important;
-  animation-timing-function: inherit !important;
-  animation-delay: inherit !important;
-  animation-iteration-count: inherit !important;
-  animation-direction: inherit !important;
-}
-
+/* 结果页 */
 .result-screen h1 {
   font-size: 5vw;
   color: #ffeb3b;
   text-shadow: 0 0 30px #ff0000;
-  margin: 0 0 6vh 0 !important;
+  margin: 0 0 6vh 0;
   width: 100vw;
-  text-align: center;
   flex-shrink: 0;
 }
 
-.result-screen .winners-grid {
+.winners-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 20px 28px;
   padding: 0 5vw 18vh 5vw;
   width: 100vw;
-  max-width: 100vw;
   max-height: 70vh;
   overflow-y: auto;
   overflow-x: hidden;
@@ -206,36 +199,36 @@ body, html {
   box-sizing: border-box;
 }
 
-.result-screen .winners-grid.center-mode {
+.winners-grid.center-mode {
   min-height: 65vh;
   align-content: center;
   justify-content: center;
 }
 
-.result-screen .winners-grid.scroll-mode {
+.winners-grid.scroll-mode {
   align-content: start;
 }
 
-.result-screen .winners-grid::-webkit-scrollbar {
+.winners-grid::-webkit-scrollbar {
   width: 14px;
 }
 
-.result-screen .winners-grid::-webkit-scrollbar-track {
+.winners-grid::-webkit-scrollbar-track {
   background: rgba(200, 16, 46, 0.8);
   border-radius: 7px;
 }
 
-.result-screen .winners-grid::-webkit-scrollbar-thumb {
+.winners-grid::-webkit-scrollbar-thumb {
   background: linear-gradient(#ffeb3b, #ffd700);
   border-radius: 7px;
   border: 3px solid rgba(200, 16, 46, 0.8);
 }
 
-.result-screen .winners-grid::-webkit-scrollbar-thumb:hover {
+.winners-grid::-webkit-scrollbar-thumb:hover {
   background: #fff176;
 }
 
-.result-screen .winner-item {
+.winner-item {
   background: rgba(200, 16, 46, 0.65);
   border-radius: 12px;
   padding: 12px 10px;
@@ -245,45 +238,36 @@ body, html {
   min-width: 220px;
 }
 
-.result-screen .winner-item:hover {
+.winner-item:hover {
   transform: translateY(-6px);
 }
 
-.result-screen .winner-name {
+.winner-name {
   font-size: 1.7rem;
   font-weight: bold;
   margin-bottom: 4px;
   color: #ffeb3b;
 }
 
-.result-screen .winner-id {
+.winner-id {
   font-size: 1.2rem;
   color: #ffffff;
   margin-bottom: 4px;
 }
 
-.result-screen .winner-extra {
+.winner-extra {
   font-size: 1rem;
   color: #ddd;
   line-height: 1.3;
 }
 
-@media (min-width: 1600px) {
-  .result-screen .winners-grid {
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  }
-  .result-screen .winner-name {
-    font-size: 1.9rem;
-  }
-}
-
+/* 提示文字 */
 .tips {
   position: fixed;
   bottom: 1.5vh;
   left: 50%;
   transform: translateX(-50%);
   font-size: 1.1rem;
-  font-weight: normal;
   color: rgba(255, 255, 255, 0.7);
   background: rgba(200, 16, 46, 0.5);
   padding: 4px 16px;
@@ -294,6 +278,7 @@ body, html {
   pointer-events: none;
 }
 
+/* 结束页 */
 .finish-title {
   font-size: 8rem;
   color: #ffeb3b;
@@ -301,47 +286,11 @@ body, html {
   text-align: center;
   margin: 0 auto;
   width: 90vw;
-  max-width: 90vw;
   line-height: 1.2;
   letter-spacing: 0.05em;
-  padding: 0 0.1em;
 }
 
-
-/* 基础：必须保留这个放大（你成功的关键） */
-.fullscreen {
-  background-size: 600% 600% !important;
-  /* 其他原有样式不变 */
-}
-
-/* 柔和红色版（基于成功测试，保持闪烁但更淡） */
-.fullscreen.bg-anim-active {
-  background: linear-gradient(135deg, #c8102e, #ff4d4f, #8b0000, #ff4d4f, #c8102e) !important;
-  animation: redBreath 6s ease-in-out infinite alternate !important;
-}
-
-/* 柔和呼吸动画（6秒一循环，亮度变化淡一些） */
-@keyframes redBreath {
-  0%   { background-position: 0% 50%; filter: brightness(0.95); }
-  50%  { background-position: 100% 50%; filter: brightness(1.2); }
-  100% { background-position: 0% 50%; filter: brightness(0.95); }
-}
-
-/* 强制 result 页继承背景动画（解决 result 静止红底问题） */
-.result-screen,
-.finish-title,  /* 如果 finish 页也有问题 */
-.fullscreen > * {  /* 所有子元素 */
-  background: transparent !important;  /* 防止子元素覆盖 */
-}
-
-.result-screen {
-  background: inherit !important;
-  background-size: inherit !important;
-  animation: inherit !important;
-}
-
-
-/* 右下角音量开关 */
+/* 音量开关 */
 .mute-toggle {
   position: absolute;
   bottom: 15px;
@@ -353,21 +302,19 @@ body, html {
   cursor: pointer;
   padding: 6px;
   border-radius: 4px;
-  background: transparent;
 }
 
 .mute-toggle label:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 
-
 .mute-toggle input[type="checkbox"] {
   position: absolute;
-  opacity: 0;                 /* 完全隐藏默认小方框 */
+  opacity: 0;
   width: 0;
   height: 0;
   margin: 0;
-  pointer-events: none;       /* 防止干扰点击 */
+  pointer-events: none;
 }
 
 .speaker-icon {
@@ -375,9 +322,91 @@ body, html {
   color: white;
 }
 
-
-/* 可选：点击时图标轻微跳动（不挤） */
-.mute-toggle input:checked + .speaker-icon {
-  transform: scale(1.05);     /* 勾选时略大一点 */
+/* 关于弹窗 */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);   /* 从 0.6 改成 0.4，变浅一些 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
 }
 
+.modal-content {
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 12px;
+  max-width: 520px;
+  width: 90%;
+  max-height: 80vh;             /* 最多占屏幕高度80%，超出自动滚动 */
+  overflow-y: auto;             /* 垂直滚动条出现 */
+  text-align: center;
+  color: #222222;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+}
+
+/* 美化滚动条（可选，但 Windows 上好看） */
+.modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+.modal-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+.modal-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.modal-content h3 {
+  margin: 0 0 16px;
+  color: #111111;
+}
+
+.path-section {
+  margin: 20px 0;
+  text-align: left;
+}
+
+.path-section p {
+  margin: 0 0 6px;
+  font-weight: 600;
+  color: #444444;
+}
+
+.path-box {
+  background: #f8f9fa;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-all;
+  border: 1px solid #dee2e6;
+  color: #000000;
+  cursor: text;
+  user-select: text;
+  min-height: 60px;
+}
+
+.path-box:hover {
+  background: #e9ecef;
+}
+
+.close-btn {
+  margin-top: 24px;
+  padding: 10px 32px;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.close-btn:hover {
+  background: #5a6268;
+}

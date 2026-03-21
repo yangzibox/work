@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { appLocalDataDir } from '@tauri-apps/api/path';
+import { appLocalDataDir, resourceDir } from '@tauri-apps/api/path';
 import { invoke } from '@tauri-apps/api/core';
 import './App.css';
 
@@ -32,7 +32,7 @@ const parseCSVLine = (line) => {
 };
 
 // 字符串解析 CSV（替换原来的 fetch 版）
-const parseParticipantsCSVFromString = (csvText) => {
+const parseParticipantsCSVFromString = (csvText, maxFields = 4) => {
   const lines = csvText.split(/\r?\n/);
 
   const filteredLines = lines
@@ -58,20 +58,20 @@ const parseParticipantsCSVFromString = (csvText) => {
     dataStartIndex = 1;
   }
 
+  const effectiveMax = Math.max(2, Number(maxFields));
+
   const data = filteredLines.slice(dataStartIndex).map(line => {
-    const values = parseCSVLine(line);
+    let values = parseCSVLine(line);
+    values = values.slice(0, effectiveMax);
+
     if (values.length < 2) return null;
 
     const row = {
       id: (values[0] || '').trim(),
       name: (values[1] || '').trim(),
-      职务: (values[2] || '').trim(),
-      部门: (values[3] || '').trim(),
+      职务: values.length > 2 ? (values[2] || '').trim() : '',
+      部门: values.length > 3 ? (values[3] || '').trim() : '',
     };
-
-    for (let i = 4; i < Math.min(values.length, 4); i++) {
-      row[`col${i}`] = (values[i] || '').trim();
-    }
 
     return row;
   }).filter(row => row && row.id && row.id.trim() !== '' && !row.id.startsWith('#'));
@@ -113,9 +113,14 @@ function App() {
   const [pred1stId, setPred1stId] = useState('');
   const [predGrandId, setPredGrandId] = useState('');
 
+  // 关于弹窗状态
+  const [showAbout, setShowAbout] = useState(false);
+  const [outputPath, setOutputPath] = useState('');
+  const [resourcesPath, setResourcesPath] = useState('');
+
   const isTauri = !!window.__TAURI__;
 
-  // 从 Rust 读取配置文件（dev 读 public/，release 读 resources/）
+  // 从 Rust 读取配置文件
   const loadConfigFile = async (fileName) => {
     try {
       const content = await invoke('read_config_file', { fileName });
@@ -126,13 +131,11 @@ function App() {
     }
   };
 
-  // 加载 settings.json
   const loadSettings = async () => {
     const text = await loadConfigFile('settings.json');
     return JSON.parse(text);
   };
 
-  // 加载 participants.csv
   const loadParticipantsCsv = async () => {
     return await loadConfigFile('participants.csv');
   };
@@ -160,7 +163,7 @@ function App() {
     };
   }, [isFullscreen, isMuted]);
 
-  // 程序启动时读取一次配置和名单
+  // 程序启动时读取一次配置和名单（回退到原始加载，无锁）
   useEffect(() => {
     const loadConfig = async () => {
       setLoading(true);
@@ -173,10 +176,9 @@ function App() {
         );
         setSettings(cleanSettings);
 
-        const csvPath = cleanSettings.participants || 'configuration/participants.csv';
-        const readMax = Number(cleanSettings.read_fields_max || 4);
         const csvText = await loadParticipantsCsv();
-        const data = parseParticipantsCSVFromString(csvText);
+        const readMax = Number(cleanSettings.read_fields_max ?? 4);
+        const data = parseParticipantsCSVFromString(csvText, readMax);
 
         console.log(`解析完成！有效人数: ${data.length} 人`);
         setParticipants(data);
@@ -246,7 +248,6 @@ function App() {
   const enterFullscreen = async () => {
     setLoading(true);
     try {
-      // 重新读取 settings.json
       console.log('点击开始抽奖 - 重新读取 settings.json...');
       const rawSettings = await loadSettings();
       const cleanSettings = Object.fromEntries(
@@ -256,19 +257,14 @@ function App() {
       setPred1stId(cleanSettings['1st-prize-pred'] || '');
       setPredGrandId(cleanSettings['grand-prize-pred'] || '');
 
-      // 重新读取 participants.csv
-      const csvPath = cleanSettings.participants || 'configuration/participants.csv';
-      console.log('重新读取参与者名单:', csvPath);
-      const readMax = Number(cleanSettings.read_fields_max || 4);
       const csvText = await loadParticipantsCsv();
-      const data = parseParticipantsCSVFromString(csvText);
-
+      const readMax = Number(cleanSettings.read_fields_max ?? 4);
+      const data = parseParticipantsCSVFromString(csvText, readMax);
       if (data.length === 0) throw new Error('名单中没有有效参与者');
 
       setParticipants(data);
       console.log(`重新读取完成，有效人数: ${data.length}`);
 
-      // 使用和手动刷新相同的严格校验
       let newValidPrizes;
       try {
         const result = validatePrizes(cleanSettings);
@@ -288,7 +284,6 @@ function App() {
         return;
       }
 
-      // 生成全新的 CSV 文件
       if (isTauri) {
         const fs = await import('@tauri-apps/plugin-fs');
         const { mkdir, exists, writeTextFile, BaseDirectory } = fs;
@@ -318,7 +313,6 @@ function App() {
         console.log('本次抽奖新文件路径已设置:', resultFilePath);
       }
 
-      // 重置状态并进入全屏
       setCurrentPrizeIndex(0);
       setUsedIds(new Set());
       setCurrentRoundWinners([]);
@@ -517,7 +511,8 @@ function App() {
       );
 
       const csvText = await loadParticipantsCsv();
-      const data = parseParticipantsCSVFromString(csvText);
+      const readMax = Number(cleanSettings.read_fields_max ?? 4);
+      const data = parseParticipantsCSVFromString(csvText, readMax);
 
       const { validPrizes: newValidPrizes } = validatePrizes(cleanSettings);
 
@@ -552,7 +547,7 @@ function App() {
   if (!isFullscreen) {
     return (
       <div className="main-screen">
-        <h2>年会抽奖系统</h2>
+        <h2>抽奖系统</h2>
         
         <p>当前参与人数：{participants.length} 人</p>
 
@@ -569,21 +564,25 @@ function App() {
             className="about-btn"
             onClick={async () => {
               let outputPath = '获取失败，请手动搜索 output 文件夹';
+              let resourcesPath = '获取失败，请检查打包配置';
+
               try {
                 const appData = await appLocalDataDir();
-                outputPath = `\n${appData}\n下的output目录`;
-                console.log('成功获取路径：', outputPath);
+                const base = appData.replace(/[\/\\]$/, '');
+                outputPath = `${base}\\output`;
+
+                const exeDir = await invoke('get_exe_dir');
+                const resBase = exeDir.replace(/[\/\\]$/, '');
+                resourcesPath = `${resBase}\\resources\\configuration`;
               } catch (err) {
-                console.error('获取路径失败:', err);
+                console.error('路径获取失败:', err);
                 outputPath = `错误：${err.message || '未知错误'}`;
+                resourcesPath = `错误：${err.message || '未知错误'}`;
               }
 
-              alert(
-                '年会抽奖桌面程序 v1.0\n' +
-                '作者：yangzibox@163.com\n' +
-                'GitHub: https://github.com/yangzibox/work\n\n' +
-                `输出路径: ${outputPath}`
-              );
+              setOutputPath(outputPath);
+              setResourcesPath(resourcesPath);
+              setShowAbout(true);
             }}
           >
             关于
@@ -604,6 +603,74 @@ function App() {
             <span className="speaker-icon">{!isMuted ? '🔊' : '🔇'}</span>
           </label>
         </div>
+
+        {/* 关于弹窗 */}
+        {showAbout && (
+          <div 
+            className="modal-overlay"
+            onClick={() => setShowAbout(false)}
+          >
+            <div 
+              className="modal-content"
+              onClick={e => e.stopPropagation()}
+            >
+              <h3>关于</h3>
+              <p>抽奖桌面程序 v1.0 (内部版)</p>
+              <p>作者：yangzibox@163.com</p>
+              <p>GitHub: https://github.com/yangzibox/work</p>
+
+              <div className="path-section">
+                <p>配置目录（configuration 文件夹）：</p>
+                <div 
+                  className="path-box"
+                  onDoubleClick={(e) => {
+                    const range = document.createRange();
+                    range.selectNodeContents(e.currentTarget);
+                    window.getSelection().removeAllRanges();
+                    window.getSelection().addRange(range);
+                  }}
+                >
+                  {resourcesPath}
+                </div>
+              </div>
+
+              <div className="path-section">
+                <p>中奖结果保存路径（output）：</p>
+                <div 
+                  className="path-box"
+                  onDoubleClick={(e) => {
+                    const range = document.createRange();
+                    range.selectNodeContents(e.currentTarget);
+                    window.getSelection().removeAllRanges();
+                    window.getSelection().addRange(range);
+                  }}
+                >
+                  {outputPath}
+                </div>
+              </div>
+
+              {/* 使用说明 - 加在最下面 */}
+              <div style={{ marginTop: '24px', textAlign: 'left', fontSize: '14px', color: '#333' }}>
+                <p style={{ fontWeight: 'bold' }}>操作步骤：</p>
+                <p>修改 configuration 文件夹里的 settings.json 或 participants.csv 并保存。</p>
+                <p>返回程序主界面。</p>
+                <p>点击右上角“↻ 刷新配置”按钮。</p>
+                <p>程序会立即重新读取文件，更新奖项和人数，弹窗提示“配置刷新成功！”和当前人数。</p>
+
+                <p style={{ fontWeight: 'bold', marginTop: '16px' }}>注意：</p>
+                <p>修改后没变化？检查文件是否保存成功、路径是否正确、编码是否 UTF-8。</p>
+                <p>全屏抽奖中途改配置不会即时生效，先按 Esc 退出全屏，再刷新。</p>
+              </div>
+
+              <button 
+                onClick={() => setShowAbout(false)}
+                className="close-btn"
+              >
+                关闭
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
