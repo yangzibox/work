@@ -21,20 +21,20 @@
   "3rd-prize": 3,
 
   "//4th-prize说明": "四等奖获奖人数",
-  "4th-prize": 4,
+  "4th-prize": 0,
 
   "//5th-prize说明": "五等奖获奖人数",
-  "5th-prize": 5,
+  "5th-prize": 0,
 
   "//6th-prize说明": "六等奖获奖人数（从这里开始抽取）",
   "6th-prize": 0,
 
   "//hotpot-prize说明": "火锅等奖获奖人数",
-  "hotpot-prize": 20,
+  "hotpot-prize": 0,
 
   "//grand-prize-pred说明": "特等奖 id",
   "grand-prize-pred": "",
 
   "//1st-prize-pred说明": "一等奖 id",
-  "1st-prize-pred": "A000"
+  "1st-prize-pred": ""
 }

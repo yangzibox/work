@@ -1,7 +1,185 @@
+latest lib.rs:
+#![cfg_attr(mobile, tauri::mobile_entry_point)]
+
+use tauri::Manager;
+use std::fs;
+use std::path::PathBuf;
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_log::Builder::default().level(log::LevelFilter::Info).build())
+        .setup(|app| {
+            let app_handle = app.app_handle().clone();
+
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = initialize_input_files(&app_handle).await {
+                    eprintln!("初始化 input 文件失败: {}", e);
+                }
+            });
+
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            copy_default_config_if_needed,
+            show_main_window
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
+
+#[tauri::command]
+async fn show_main_window(window: tauri::Window) {
+    let _ = window.show();
+    let _ = window.set_focus();
+}
+
+#[tauri::command]
+fn copy_default_config_if_needed(app: tauri::AppHandle) -> Result<String, String> {
+    let app_data_dir = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|e| format!("无法获取 AppLocalData 目录: {}", e))?;
+
+    let input_dir = app_data_dir.join("input");
+    fs::create_dir_all(&input_dir)
+        .map_err(|e| format!("创建 input 目录失败: {}", e))?;
+
+    let resource_dir = app
+        .path()
+        .resource_dir()
+        .map_err(|e| format!("无法获取资源目录: {}", e))?;
+
+    // 详细诊断打印
+    println!("\n[资源诊断开始]");
+    println!("当前 AppLocalData 目录: {}", app_data_dir.display());
+    println!("input 目标目录: {}", input_dir.display());
+    println!("Tauri 资源根目录 (resource_dir): {}", resource_dir.display());
+    println!("是否存在 resource_dir 本身: {}", resource_dir.exists());
+
+    let settings_path = resource_dir.join("settings.json");
+    println!("settings.json 预期路径: {}", settings_path.display());
+    println!("settings.json 是否存在: {}", settings_path.exists());
+
+    let csv_path = resource_dir.join("participants.csv");
+    println!("participants.csv 预期路径: {}", csv_path.display());
+    println!("participants.csv 是否存在: {}", csv_path.exists());
+
+    if resource_dir.exists() {
+        if let Ok(entries) = fs::read_dir(&resource_dir) {
+            println!("资源目录下可见文件/目录:");
+            for entry in entries.flatten() {
+                println!("  - {}", entry.path().display());
+            }
+        } else {
+            println!("无法读取资源目录内容");
+        }
+    } else {
+        println!("资源根目录本身不存在！");
+    }
+    println!("[资源诊断结束]\n");
+
+    let files = vec!["settings.json", "participants.csv"];
+
+    let mut copied = Vec::new();
+
+    for file_name in files {
+        let dst_path = input_dir.join(file_name);
+        if dst_path.exists() {
+            println!("input 已存在文件，跳过拷贝: {}", file_name);
+            continue;
+        }
+
+        let src_path = resource_dir.join(file_name);
+
+        if !src_path.exists() {
+            println!("资源中缺少文件 {}，跳过补齐", file_name);
+            continue;
+        }
+
+        fs::copy(&src_path, &dst_path)
+            .map_err(|e| format!("拷贝 {} 失败: {}", file_name, e))?;
+
+        println!("成功补齐文件到 input: {}", file_name);
+        copied.push(file_name.to_string());
+    }
+
+    if copied.is_empty() {
+        Ok("所有配置文件已存在或资源缺失".to_string())
+    } else {
+        Ok(format!("已补齐缺失文件：{}", copied.join("、")))
+    }
+}
+
+async fn initialize_input_files(app: &tauri::AppHandle) -> Result<(), String> {
+    let app_data_dir = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|e| format!("无法获取 AppLocalData 目录: {}", e))?;
+
+    let input_dir = app_data_dir.join("input");
+    fs::create_dir_all(&input_dir)
+        .map_err(|e| format!("创建 input 目录失败: {}", e))?;
+
+    let resource_dir = app
+        .path()
+        .resource_dir()
+        .map_err(|e| format!("无法获取资源目录: {}", e))?;
+
+    // 同样的诊断打印
+    println!("\n[启动时资源诊断]");
+    println!("资源根目录: {}", resource_dir.display());
+    println!("settings.json 路径: {}", resource_dir.join("settings.json").display());
+    println!("settings.json 存在: {}", resource_dir.join("settings.json").exists());
+    println!("participants.csv 存在: {}", resource_dir.join("participants.csv").exists());
+
+    if resource_dir.exists() {
+        if let Ok(entries) = fs::read_dir(&resource_dir) {
+            println!("资源目录内容:");
+            for entry in entries.flatten() {
+                println!("  - {}", entry.path().display());
+            }
+        } else {
+            println!("无法读取资源目录");
+        }
+    }
+    println!("[启动时诊断结束]\n");
+
+    let files = vec!["settings.json", "participants.csv"];
+
+    let mut any_copied = false;
+
+    for file_name in files {
+        let dst_path = input_dir.join(file_name);
+        if dst_path.exists() {
+            continue;
+        }
+
+        let src_path = resource_dir.join(file_name);
+
+        if !src_path.exists() {
+            continue;
+        }
+
+        fs::copy(&src_path, &dst_path)
+            .map_err(|e| format!("拷贝 {} 失败: {}", file_name, e))?;
+
+        any_copied = true;
+    }
+
+    Ok(())
+}
+
+
+latest App.jsx
+
 import { useState, useEffect, useRef } from 'react';
 import { appLocalDataDir } from '@tauri-apps/api/path';
 import { invoke } from '@tauri-apps/api/core';
+import { readTextFile, BaseDirectory } from '@tauri-apps/plugin-fs';
 import './App.css';
+
 
 // 简单 CSV 行解析（支持带引号的字段）
 const parseCSVLine = (line) => {
@@ -68,6 +246,89 @@ const [isMuted, setIsMuted] = useState(false);
   const [predGrandId, setPredGrandId] = useState('');
 
   const isTauri = !!window.__TAURI__;
+
+	// 1. 公共加载函数（从 input 读取）
+  const reloadConfigAndParticipants = async () => {
+    setLoading(true);
+    try {
+      const settingsPath = 'input/settings.json';
+      const csvPath = 'input/participants.csv';
+
+      const settingsText = await readTextFile(settingsPath, { baseDir: BaseDirectory.AppLocalData });
+      const rawSettings = JSON.parse(settingsText);
+      const cleanSettings = Object.fromEntries(
+        Object.entries(rawSettings).filter(([k]) => !k.startsWith('//'))
+      );
+      setSettings(cleanSettings);
+      setPred1stId(cleanSettings['1st-prize-pred'] || '');
+      setPredGrandId(cleanSettings['grand-prize-pred'] || '');
+
+      const csvText = await readTextFile(csvPath, { baseDir: BaseDirectory.AppLocalData });
+      const data = parseParticipantsCSVFromString(csvText);
+      setParticipants(data);
+
+      const { validPrizes: newValidPrizes } = validatePrizes(cleanSettings);
+      setValidPrizes(newValidPrizes);
+
+      return { success: true, validPrizes: newValidPrizes, participantsCount: data.length };
+    } catch (err) {
+      console.error('读取 input 失败:', err);
+      alert(`读取配置失败：\n${err.message}\n请检查 %APPDATA%\\com.yangzibox.luckydrawbox\\input`);
+      return { success: false };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 2. 从字符串解析 CSV 的函数（放在 reload 函数下面）
+  const parseParticipantsCSVFromString = (csvText) => {
+    const lines = csvText.split(/\r?\n/);
+
+    const filteredLines = lines
+      .map(l => l.trim())
+      .filter(l => l && !l.startsWith('#'));
+
+    if (filteredLines.length < 1) throw new Error('CSV 文件没有有效数据');
+
+    let headers = ['id', 'name', '职务', '部门'];
+    let dataStartIndex = 0;
+
+    const firstLine = filteredLines[0];
+    const likelyHeader = firstLine.includes('id') || 
+                         firstLine.includes('姓名') || 
+                         firstLine.includes('name') || 
+                         firstLine.includes('员工号') || 
+                         firstLine.includes('工号') || 
+                         firstLine.includes('职务') || 
+                         firstLine.includes('部门');
+
+    if (likelyHeader) {
+      headers = parseCSVLine(firstLine);
+      dataStartIndex = 1;
+    }
+
+    const data = filteredLines.slice(dataStartIndex).map(line => {
+      const values = parseCSVLine(line);
+      if (values.length < 2) return null;
+
+      const row = {
+        id: (values[0] || '').trim(),
+        name: (values[1] || '').trim(),
+        职务: (values[2] || '').trim(),
+        部门: (values[3] || '').trim(),
+      };
+
+      for (let i = 4; i < Math.min(values.length, 4); i++) {
+        row[`col${i}`] = (values[i] || '').trim();
+      }
+
+      return row;
+    }).filter(row => row && row.id && row.id.trim() !== '' && !row.id.startsWith('#'));
+
+    if (data.length === 0) throw new Error('名单中没有有效参与者');
+
+    return data;
+  };
 
   // 通用 CSV 解析函数（支持无表头 + #注释 + 前4列固定含义）
   const parseParticipantsCSV = async (csvPath, readMax) => {
@@ -157,6 +418,37 @@ const [isMuted, setIsMuted] = useState(false);
   };
 }, [isFullscreen, isMuted]);  // 依赖全屏和静音状态
 
+
+useEffect(() => {
+  const initAndLoad = async () => {
+    setLoading(true);
+    try {
+      if (window.__TAURI__) {
+        const result = await invoke('copy_default_config_if_needed');
+        console.log('初始化 input 结果:', result);
+
+        // 根据 Rust 返回的内容，更智能地弹窗
+        if (result.includes('补齐') || result.includes('首次运行')) {
+          alert(`配置初始化完成：${result}\n\n你可以随时修改 %APPDATA%\\com.yangzibox.luckydrawbox\\input 下的文件。`);
+        } else if (result.includes('已存在')) {
+          console.log('配置文件完整，无需补齐');
+        } else {
+          console.warn('初始化返回意外结果:', result);
+        }
+      }
+
+      await reloadConfigAndParticipants();
+      setScreen('ready');
+    } catch (err) {
+      console.error('启动失败:', err);
+      alert('启动失败：' + (err.message || '未知错误'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  initAndLoad();
+}, []);
 
 
   // 程序启动时读取一次配置和名单（保持主界面人数正常）

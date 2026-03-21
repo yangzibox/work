@@ -19,8 +19,7 @@
         "resizable": true,
         "fullscreen": false,
         "visible": true,         
-        "backgroundColor": "#c8102e",
-		"filename": "LuckyDrawBox.exe"
+        "backgroundColor": "#c8102e"
       }
     ],
     "security": {
@@ -32,6 +31,10 @@
     "targets": "all",
     "icon": [
       "icons/icon.ico"
-    ]
+    ],
+	"resources": [
+		"resources/configuration/settings.json",
+		"resources/configuration/participants.csv"
+	]
   }
 }

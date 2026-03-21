@@ -160,21 +160,24 @@ body, html {
   to   { opacity: 1; }
 }
 
+/* 额外保险：清掉 result-screen 自己的 background 声明 */
 .result-screen {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  height: 100vh !important;
-  width: 100vw !important;
-  margin: 0 !important;
-  padding: 8vh 5vw 18vh 5vw !important;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  background: linear-gradient(to bottom, #c8102e, #ff4d4f, #000);
-  overflow: hidden;
-  box-sizing: border-box;
+  background: none !important;
+  background-color: transparent !important;
+}
+
+/* 最高优先级：强制 result-screen 跟随全屏的背景和动画 */
+.fullscreen.bg-anim-active .result-screen {
+  background: inherit !important;
+  background-image: inherit !important;
+  background-size: inherit !important;
+  background-position: inherit !important;
+  animation: inherit !important;
+  animation-duration: inherit !important;
+  animation-timing-function: inherit !important;
+  animation-delay: inherit !important;
+  animation-iteration-count: inherit !important;
+  animation-direction: inherit !important;
 }
 
 .result-screen h1 {
@@ -305,21 +308,76 @@ body, html {
 }
 
 
-/* 基础保持：放大背景尺寸（你成功的关键） */
+/* 基础：必须保留这个放大（你成功的关键） */
 .fullscreen {
-  background-size: 600% 600% !important;   /* 保留这个，不要删！ */
+  background-size: 600% 600% !important;
   /* 其他原有样式不变 */
 }
 
-/* 红色平滑流动版（去掉 brightness 闪烁，只留位置移动） */
+/* 柔和红色版（基于成功测试，保持闪烁但更淡） */
 .fullscreen.bg-anim-active {
   background: linear-gradient(135deg, #c8102e, #ff4d4f, #8b0000, #ff4d4f, #c8102e) !important;
-  animation: smoothFlow 18s linear infinite !important;
+  animation: redBreath 6s ease-in-out infinite alternate !important;
 }
 
-/* 平滑流动 keyframes：18秒循环，方向斜向 */
-@keyframes smoothFlow {
-  0%   { background-position: 0% 0%; }
-  50%  { background-position: 100% 100%; }
-  100% { background-position: 0% 0%; }
+/* 柔和呼吸动画（6秒一循环，亮度变化淡一些） */
+@keyframes redBreath {
+  0%   { background-position: 0% 50%; filter: brightness(0.95); }
+  50%  { background-position: 100% 50%; filter: brightness(1.2); }
+  100% { background-position: 0% 50%; filter: brightness(0.95); }
 }
+
+/* 强制 result 页继承背景动画（解决 result 静止红底问题） */
+.result-screen,
+.finish-title,  /* 如果 finish 页也有问题 */
+.fullscreen > * {  /* 所有子元素 */
+  background: transparent !important;  /* 防止子元素覆盖 */
+}
+
+.result-screen {
+  background: inherit !important;
+  background-size: inherit !important;
+  animation: inherit !important;
+}
+
+
+/* 右下角音量开关 */
+.mute-toggle {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  z-index: 10;
+}
+
+.mute-toggle label {
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  background: transparent;
+}
+
+.mute-toggle label:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+
+.mute-toggle input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;                 /* 完全隐藏默认小方框 */
+  width: 0;
+  height: 0;
+  margin: 0;
+  pointer-events: none;       /* 防止干扰点击 */
+}
+
+.speaker-icon {
+  font-size: 20px;
+  color: white;
+}
+
+
+/* 可选：点击时图标轻微跳动（不挤） */
+.mute-toggle input:checked + .speaker-icon {
+  transform: scale(1.05);     /* 勾选时略大一点 */
+}
+
