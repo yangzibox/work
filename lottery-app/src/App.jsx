@@ -31,6 +31,56 @@ const parseCSVLine = (line) => {
   return result;
 };
 
+// 字符串解析 CSV（替换原来的 fetch 版）
+const parseParticipantsCSVFromString = (csvText) => {
+  const lines = csvText.split(/\r?\n/);
+
+  const filteredLines = lines
+    .map(l => l.trim())
+    .filter(l => l && !l.startsWith('#'));
+
+  if (filteredLines.length < 1) throw new Error('CSV 文件没有有效数据');
+
+  let headers = ['id', 'name', '职务', '部门'];
+  let dataStartIndex = 0;
+
+  const firstLine = filteredLines[0];
+  const likelyHeader = firstLine.includes('id') || 
+                       firstLine.includes('姓名') || 
+                       firstLine.includes('name') || 
+                       firstLine.includes('员工号') || 
+                       firstLine.includes('工号') || 
+                       firstLine.includes('职务') || 
+                       firstLine.includes('部门');
+
+  if (likelyHeader) {
+    headers = parseCSVLine(firstLine);
+    dataStartIndex = 1;
+  }
+
+  const data = filteredLines.slice(dataStartIndex).map(line => {
+    const values = parseCSVLine(line);
+    if (values.length < 2) return null;
+
+    const row = {
+      id: (values[0] || '').trim(),
+      name: (values[1] || '').trim(),
+      职务: (values[2] || '').trim(),
+      部门: (values[3] || '').trim(),
+    };
+
+    for (let i = 4; i < Math.min(values.length, 4); i++) {
+      row[`col${i}`] = (values[i] || '').trim();
+    }
+
+    return row;
+  }).filter(row => row && row.id && row.id.trim() !== '' && !row.id.startsWith('#'));
+
+  if (data.length === 0) throw new Error('名单中没有有效参与者');
+
+  return data;
+};
+
 // 奖项定义
 const prizeDefs = [
   { key: 'hotpot-prize', name: '火锅奖' },
@@ -46,12 +96,8 @@ const prizeDefs = [
 let resultFilePath = null;
 
 function App() {
-	// ★ 这里放 ref 和 state（顺序随意，但 ref 通常放前面）
-  const bgmRef = useRef(null);  // ← 必须在这里定义
-
-	// 静音开关，默认不静音（有声）
-const [isMuted, setIsMuted] = useState(false);
-
+  const bgmRef = useRef(null);
+  const [isMuted, setIsMuted] = useState(false);
 
   const [screen, setScreen] = useState('loading');
   const [participants, setParticipants] = useState([]);
@@ -69,107 +115,59 @@ const [isMuted, setIsMuted] = useState(false);
 
   const isTauri = !!window.__TAURI__;
 
-  // 通用 CSV 解析函数（支持无表头 + #注释 + 前4列固定含义）
-  const parseParticipantsCSV = async (csvPath, readMax) => {
-    const csvRes = await fetch(`/${csvPath}?t=${Date.now()}`, { cache: 'no-store' });
-    if (!csvRes.ok) throw new Error(`participants.csv 加载失败 ${csvRes.status}`);
+  // 从 Rust 读取配置文件（dev 读 public/，release 读 resources/）
+  const loadConfigFile = async (fileName) => {
+    try {
+      const content = await invoke('read_config_file', { fileName });
+      return content;
+    } catch (err) {
+      console.error(`读取 ${fileName} 失败:`, err);
+      throw err;
+    }
+  };
 
-    const csvText = await csvRes.text();
-    const lines = csvText.split(/\r?\n/);
+  // 加载 settings.json
+  const loadSettings = async () => {
+    const text = await loadConfigFile('settings.json');
+    return JSON.parse(text);
+  };
 
-    // 过滤空行和 # 开头的注释行（任何位置的 # 行都忽略）
-    const filteredLines = lines
-      .map(l => l.trim())
-      .filter(l => l && !l.startsWith('#'));
+  // 加载 participants.csv
+  const loadParticipantsCsv = async () => {
+    return await loadConfigFile('participants.csv');
+  };
 
-    if (filteredLines.length < 1) throw new Error('CSV 文件没有有效数据');
-
-    let headers = ['id', 'name', '职务', '部门'];  // 默认固定映射
-    let dataStartIndex = 0;
-
-    // 判断第一行是否像表头（包含常见关键词）
-    const firstLine = filteredLines[0];
-    const likelyHeader = firstLine.includes('id') || 
-                         firstLine.includes('姓名') || 
-                         firstLine.includes('name') || 
-                         firstLine.includes('员工号') || 
-                         firstLine.includes('工号') || 
-                         firstLine.includes('职务') || 
-                         firstLine.includes('部门');
-
-    if (likelyHeader) {
-      headers = parseCSVLine(firstLine);
-      dataStartIndex = 1;  // 从第二行开始是数据
-    } else {
-      // 无表头，第一行就是数据
-      dataStartIndex = 0;
+  useEffect(() => {
+    if (!bgmRef.current) {
+      bgmRef.current = new Audio('/sounds/chinese-short-epic-30s.mp3');
+      bgmRef.current.loop = true;
+      bgmRef.current.volume = isMuted ? 0 : 0.35;
+      console.log('背景音乐实例已创建');
     }
 
-    const data = filteredLines.slice(dataStartIndex).map(line => {
-      const values = parseCSVLine(line);
-      if (values.length < 2) return null;  // 至少要有 id 和姓名
-
-      const row = {
-        id: (values[0] || '').trim(),
-        name: (values[1] || '').trim(),          // 固定第二列作为姓名
-        职务: (values[2] || '').trim(),
-        部门: (values[3] || '').trim(),
-      };
-
-      // 继续读额外列（如果 readMax > 4）
-      for (let i = 4; i < Math.min(values.length, readMax); i++) {
-        row[`col${i}`] = (values[i] || '').trim();
-      }
-
-      return row;
-    }).filter(row => row && row.id && row.id.trim() !== '' && !row.id.startsWith('#'));
-
-    if (data.length === 0) throw new Error('名单中没有有效参与者（缺少 id 或全部被过滤）');
-
-    return data;
-  };
-
-
-	useEffect(() => {
-  // 1. 组件首次渲染时创建 Audio（只执行一次）
-  if (!bgmRef.current) {
-    bgmRef.current = new Audio('/sounds/chinese-short-epic-30s.mp3');
-    bgmRef.current.loop = true;
     bgmRef.current.volume = isMuted ? 0 : 0.35;
-    console.log('背景音乐实例已创建');
-  }
 
-  // 2. 同步音量（每次 isMuted 变化时更新）
-  bgmRef.current.volume = isMuted ? 0 : 0.35;
+    if (isFullscreen) {
+      bgmRef.current.play().catch(err => {
+        console.log('背景音乐自动播放被阻止:', err);
+      });
+    } else {
+      bgmRef.current?.pause();
+    }
 
-  // 3. 根据全屏状态播放/暂停
-  if (isFullscreen) {
-    bgmRef.current.play().catch(err => {
-      console.log('背景音乐自动播放被阻止:', err);
-    });
-  } else {
-    bgmRef.current?.pause();
-  }
+    return () => {
+      bgmRef.current?.pause();
+    };
+  }, [isFullscreen, isMuted]);
 
-  // 4. 清理
-  return () => {
-    bgmRef.current?.pause();
-  };
-}, [isFullscreen, isMuted]);  // 依赖全屏和静音状态
-
-
-
-  // 程序启动时读取一次配置和名单（保持主界面人数正常）
+  // 程序启动时读取一次配置和名单
   useEffect(() => {
     const loadConfig = async () => {
       setLoading(true);
       try {
         console.log('程序启动 - 加载 settings.json...');
 
-        const settingsRes = await fetch('/configuration/settings.json', { cache: 'no-store' });
-        if (!settingsRes.ok) throw new Error(`settings.json 加载失败 ${settingsRes.status}`);
-
-        const rawSettings = await settingsRes.json();
+        const rawSettings = await loadSettings();
         const cleanSettings = Object.fromEntries(
           Object.entries(rawSettings).filter(([k]) => !k.startsWith('//'))
         );
@@ -177,7 +175,8 @@ const [isMuted, setIsMuted] = useState(false);
 
         const csvPath = cleanSettings.participants || 'configuration/participants.csv';
         const readMax = Number(cleanSettings.read_fields_max || 4);
-        const data = await parseParticipantsCSV(csvPath, readMax);
+        const csvText = await loadParticipantsCsv();
+        const data = parseParticipantsCSVFromString(csvText);
 
         console.log(`解析完成！有效人数: ${data.length} 人`);
         setParticipants(data);
@@ -249,10 +248,7 @@ const [isMuted, setIsMuted] = useState(false);
     try {
       // 重新读取 settings.json
       console.log('点击开始抽奖 - 重新读取 settings.json...');
-      const settingsRes = await fetch('/configuration/settings.json', { cache: 'no-store' });
-      if (!settingsRes.ok) throw new Error(`settings.json 加载失败 ${settingsRes.status}`);
-
-      const rawSettings = await settingsRes.json();
+      const rawSettings = await loadSettings();
       const cleanSettings = Object.fromEntries(
         Object.entries(rawSettings).filter(([k]) => !k.startsWith('//'))
       );
@@ -264,7 +260,8 @@ const [isMuted, setIsMuted] = useState(false);
       const csvPath = cleanSettings.participants || 'configuration/participants.csv';
       console.log('重新读取参与者名单:', csvPath);
       const readMax = Number(cleanSettings.read_fields_max || 4);
-      const data = await parseParticipantsCSV(csvPath, readMax);
+      const csvText = await loadParticipantsCsv();
+      const data = parseParticipantsCSVFromString(csvText);
 
       if (data.length === 0) throw new Error('名单中没有有效参与者');
 
@@ -284,7 +281,6 @@ const [isMuted, setIsMuted] = useState(false);
         return;
       }
 
-      // 如果校验通过，但 validPrizes 为空
       if (newValidPrizes.length === 0) {
         alert(`❌ 配置中没有有效奖项（所有奖项数量均为 0）\n\n请检查 settings.json 并至少设置一个奖项！`);
         setScreen('ready');
@@ -328,12 +324,11 @@ const [isMuted, setIsMuted] = useState(false);
       setCurrentRoundWinners([]);
       setScreen('prize_guide');
       await document.documentElement.requestFullscreen();
-	  // 新增：强制铺满视口（防浏览器默认不铺满）
-			document.documentElement.style.width = '100vw';
-			document.documentElement.style.height = '100vh';
-			document.body.style.margin = '0';
-			document.body.style.padding = '0';
-			document.body.style.overflow = 'hidden';
+      document.documentElement.style.width = '100vw';
+      document.documentElement.style.height = '100vh';
+      document.body.style.margin = '0';
+      document.body.style.padding = '0';
+      document.body.style.overflow = 'hidden';
 
     } catch (err) {
       console.error('开始抽奖失败:', err);
@@ -353,10 +348,8 @@ const [isMuted, setIsMuted] = useState(false);
       const currentPrize = validPrizes[currentPrizeIndex];
       if (!currentPrize) return;
 
-      // 先过滤掉所有已中奖的
       let available = participants.filter(p => !usedIds.has(p.id));
 
-      // 排除内定人员（让他们留到对应奖项）
       if (pred1stId && currentPrize.key !== '1st-prize') {
         available = available.filter(p => p.id !== pred1stId);
       }
@@ -372,7 +365,6 @@ const [isMuted, setIsMuted] = useState(false);
 
       let winners = [];
 
-      // 处理一等奖内定
       if (currentPrize.key === '1st-prize' && pred1stId) {
         const predPerson = participants.find(p => p.id === pred1stId);
         if (predPerson && available.some(p => p.id === pred1stId)) {
@@ -385,10 +377,7 @@ const [isMuted, setIsMuted] = useState(false);
             winners = winners.concat(shuffled.slice(0, currentPrize.total - 1));
           }
         }
-      }
-
-      // 处理特等奖内定
-      else if (currentPrize.key === 'grand-prize' && predGrandId) {
+      } else if (currentPrize.key === 'grand-prize' && predGrandId) {
         const predPerson = participants.find(p => p.id === predGrandId);
         if (predPerson && available.some(p => p.id === predGrandId)) {
           winners.push(predPerson);
@@ -402,13 +391,11 @@ const [isMuted, setIsMuted] = useState(false);
         }
       }
 
-      // 如果没有内定或内定无效，正常随机抽
       if (winners.length === 0) {
         const shuffled = [...available].sort(() => Math.random() - 0.5);
         winners = shuffled.slice(0, currentPrize.total);
       }
 
-      // 更新已中奖记录
       setUsedIds(prev => {
         const next = new Set(prev);
         winners.forEach(w => next.add(w.id));
@@ -418,7 +405,6 @@ const [isMuted, setIsMuted] = useState(false);
       setCurrentRoundWinners(winners);
       setScreen('result');
 
-      // 写入结果文件
       if (isTauri && resultFilePath) {
         try {
           const fs = await import('@tauri-apps/plugin-fs');
@@ -473,7 +459,6 @@ const [isMuted, setIsMuted] = useState(false);
     }
   };
 
-  // 新增：严格校验奖项连续性规则
   const validatePrizes = (cleanSettings) => {
     const prizesWithTotal = prizeDefs.map(p => ({
       ...p,
@@ -486,10 +471,8 @@ const [isMuted, setIsMuted] = useState(false);
       throw new Error('奖项定义中缺少 "1st-prize"');
     }
 
-    // 火锅奖不参与连续起点判断
     const hotpotTotal = prizesWithTotal[hotpotIndex]?.total ?? 0;
 
-    // 从六等奖开始查找第一个 >0 的奖项，作为连续起点
     let startIdx = -1;
     for (let i = hotpotIndex + 1; i <= firstPrizeIndex; i++) {
       if (prizesWithTotal[i].total > 0) {
@@ -499,7 +482,6 @@ const [isMuted, setIsMuted] = useState(false);
     }
 
     if (startIdx !== -1) {
-      // 从这个起点到一等奖，必须全部 > 0
       for (let i = startIdx; i <= firstPrizeIndex; i++) {
         if (prizesWithTotal[i].total <= 0) {
           const startName = prizesWithTotal[startIdx].name;
@@ -512,42 +494,33 @@ const [isMuted, setIsMuted] = useState(false);
         }
       }
     } else {
-      // 六等奖到一等奖全为 0
       if (hotpotTotal <= 0) {
         const grandTotal = prizesWithTotal.find(p => p.key === 'grand-prize')?.total ?? 0;
         if (grandTotal <= 0) {
           throw new Error('所有奖项数量均为 0，至少设置一个奖项！');
         }
       }
-      // 火锅奖 >0 + 后面全 0 → 允许
     }
 
     const validPrizes = prizesWithTotal.filter(p => p.total > 0);
     return { validPrizes, prizesWithTotal };
   };
 
-  // 新增：刷新配置按钮逻辑
   const refreshConfig = async () => {
     setLoading(true);
     try {
       console.log('手动刷新配置...');
 
-      const settingsRes = await fetch('/configuration/settings.json', { cache: 'no-store' });
-      if (!settingsRes.ok) throw new Error(`settings.json 加载失败 ${settingsRes.status}`);
-
-      const rawSettings = await settingsRes.json();
+      const rawSettings = await loadSettings();
       const cleanSettings = Object.fromEntries(
         Object.entries(rawSettings).filter(([k]) => !k.startsWith('//'))
       );
 
-      const csvPath = cleanSettings.participants || 'configuration/participants.csv';
-      const readMax = Number(cleanSettings.read_fields_max || 4);
-      const data = await parseParticipantsCSV(csvPath, readMax);
+      const csvText = await loadParticipantsCsv();
+      const data = parseParticipantsCSVFromString(csvText);
 
-      // 严格校验奖项规则
       const { validPrizes: newValidPrizes } = validatePrizes(cleanSettings);
 
-      // 更新状态
       setSettings(cleanSettings);
       setParticipants(data);
       setValidPrizes(newValidPrizes);
@@ -593,45 +566,44 @@ const [isMuted, setIsMuted] = useState(false);
           </button>
           
           <button 
-					className="about-btn"
-					onClick={async () => {
-						let outputPath = '获取失败，请手动搜索 output 文件夹';
-						try {
-							const appData = await appLocalDataDir();
-							outputPath = `\n${appData}\n下的output目录`;
-							console.log('成功获取路径：', outputPath);  // 加这行方便调试
-						} catch (err) {
-							console.error('获取路径失败:', err);
-							outputPath = `错误：${err.message || '未知错误'}`;
-						}
+            className="about-btn"
+            onClick={async () => {
+              let outputPath = '获取失败，请手动搜索 output 文件夹';
+              try {
+                const appData = await appLocalDataDir();
+                outputPath = `\n${appData}\n下的output目录`;
+                console.log('成功获取路径：', outputPath);
+              } catch (err) {
+                console.error('获取路径失败:', err);
+                outputPath = `错误：${err.message || '未知错误'}`;
+              }
 
-						alert(
-							'年会抽奖桌面程序 v1.0\n' +
-							'作者：yangzibox@163.com\n' +
-							'GitHub: https://github.com/yangzibox/work\n\n' +
-							`输出路径: ${outputPath}`
-						);
-					}}
-				>
-					关于
-				</button>
+              alert(
+                '年会抽奖桌面程序 v1.0\n' +
+                '作者：yangzibox@163.com\n' +
+                'GitHub: https://github.com/yangzibox/work\n\n' +
+                `输出路径: ${outputPath}`
+              );
+            }}
+          >
+            关于
+          </button>
         </div>
 
         <button className="start-button" onClick={enterFullscreen} disabled={loading}>
           {loading ? '加载中...' : '开始抽奖（全屏）'}
         </button>
 
-				{/* 新增：右下角音量开关 */}
-				<div className="mute-toggle">
-					<label>
-						<input
-							type="checkbox"
-							checked={!isMuted}
-							onChange={() => setIsMuted(prev => !prev)}
-						/>
-						<span className="speaker-icon">{!isMuted ? '🔊' : '🔇'}</span>
-					</label>
-				</div>
+        <div className="mute-toggle">
+          <label>
+            <input
+              type="checkbox"
+              checked={!isMuted}
+              onChange={() => setIsMuted(prev => !prev)}
+            />
+            <span className="speaker-icon">{!isMuted ? '🔊' : '🔇'}</span>
+          </label>
+        </div>
       </div>
     );
   }
@@ -646,28 +618,28 @@ const [isMuted, setIsMuted] = useState(false);
   }
 
   if (screen === 'result') {
-  return (
-    <div className="fullscreen result-screen bg-anim-active">  {/* ← 这里加了 bg-anim-active */}
-      <h1>恭喜以下幸运儿！</h1>
+    return (
+      <div className="fullscreen result-screen bg-anim-active">
+        <h1>恭喜以下幸运儿！</h1>
 
-      <div 
-        className={`winners-grid ${currentRoundWinners.length <= 12 ? 'center-mode' : 'scroll-mode'}`}
-      >
-        {currentRoundWinners.map((w, i) => (
-          <div key={w.id} className="winner-item">
-            <div className="winner-name">{w.name}</div>
-            <div className="winner-id">{w.id}</div>
-            <div className="winner-extra">
-              {w.职务 || ''} {w.部门 || ''}
+        <div 
+          className={`winners-grid ${currentRoundWinners.length <= 12 ? 'center-mode' : 'scroll-mode'}`}
+        >
+          {currentRoundWinners.map((w, i) => (
+            <div key={w.id} className="winner-item">
+              <div className="winner-name">{w.name}</div>
+              <div className="winner-id">{w.id}</div>
+              <div className="winner-extra">
+                {w.职务 || ''} {w.部门 || ''}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      <p className="tips">空格键 → 继续下一轮　　Esc → 退出　　人数多时可滚动查看</p>
-    </div>
-  );
-}
+        <p className="tips">空格键 → 继续下一轮　　Esc → 退出　　人数多时可滚动查看</p>
+      </div>
+    );
+  }
 
   return (
     <div className={`fullscreen ${isFullscreen ? 'bg-anim-active' : ''}`}>

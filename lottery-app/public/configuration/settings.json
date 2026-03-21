@@ -1,6 +1,6 @@
 {
   "//participants说明": "参与者名单 CSV 文件路径，第一列必须为 id（员工号，必填），第二列为姓名（必填），后续列可选（如职务、部门）",
-  "participants": "configuration/participants.csv",
+  "participants": "configuration/participant.csv",
 
   "//read_fields_max说明": "读取 CSV 时每行最多读取的字段数（列数），超出部分会被忽略，建议设置为 CSV 实际最大列数",
   "read_fields_max": 4,
