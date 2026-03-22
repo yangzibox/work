@@ -96,6 +96,7 @@ const prizeDefs = [
 let resultFilePath = null;
 
 function App() {
+		const bootstrapGuard = useRef(false);
   const bgmRef = useRef(null);
   const [isMuted, setIsMuted] = useState(false);
 
@@ -117,6 +118,8 @@ function App() {
   const [showAbout, setShowAbout] = useState(false);
   const [outputPath, setOutputPath] = useState('');
   const [resourcesPath, setResourcesPath] = useState('');
+
+	const [versionText, setVersionText] = useState('');
 
   const isTauri = !!window.__TAURI__;
 
@@ -163,43 +166,109 @@ function App() {
     };
   }, [isFullscreen, isMuted]);
 
-  // 程序启动时读取一次配置和名单（回退到原始加载，无锁）
-  useEffect(() => {
-    const loadConfig = async () => {
-      setLoading(true);
-      try {
-        console.log('程序启动 - 加载 settings.json...');
+  // 程序启动时读取配置和名单（加锁检查 + 密码）
+useEffect(() => {
+	if (bootstrapGuard.current) return;
 
-        const rawSettings = await loadSettings();
-        const cleanSettings = Object.fromEntries(
-          Object.entries(rawSettings).filter(([k]) => !k.startsWith('//'))
-        );
-        setSettings(cleanSettings);
+  let handleKeyDown;
 
-        const csvText = await loadParticipantsCsv();
-        const readMax = Number(cleanSettings.read_fields_max ?? 4);
-        const data = parseParticipantsCSVFromString(csvText, readMax);
-
-        console.log(`解析完成！有效人数: ${data.length} 人`);
-        setParticipants(data);
-
-        const valid = prizeDefs
-          .map(p => ({ ...p, total: Number(cleanSettings[p.key] ?? 0) }))
-          .filter(p => p.total > 0);
-
-        setValidPrizes(valid);
-        setScreen('ready');
-
-      } catch (err) {
-        console.error('❌ 启动加载失败:', err);
-        alert('启动加载失败：' + err.message + '\n\n请检查 configuration 目录下的文件！');
-      } finally {
-        setLoading(false);
-      }
+  if (import.meta.env.PROD) {
+    handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "r") e.preventDefault();
+      if (e.key === "F5") e.preventDefault();
+      if (e.key === "F12") e.preventDefault();
     };
+    window.addEventListener("keydown", handleKeyDown);
+  }
 
-    loadConfig();
-  }, []);
+  const bootstrap = async () => {
+  bootstrapGuard.current = true;
+
+  let cleanSettings = {};  // ★ 提前声明，避免 catch 里未定义
+
+  setLoading(true);
+  try {
+    console.log('程序启动 - 先加载配置文件...');
+
+    const rawSettings = await loadSettings();
+    cleanSettings = Object.fromEntries(
+      Object.entries(rawSettings).filter(([k]) => !k.startsWith('//'))
+    );
+    setSettings(cleanSettings);
+
+    const csvText = await loadParticipantsCsv();
+    const readMax = Number(cleanSettings.read_fields_max ?? 4);
+    const data = parseParticipantsCSVFromString(csvText, readMax);
+
+    console.log(`解析完成！有效人数: ${data.length} 人`);
+    setParticipants(data);
+
+    const valid = prizeDefs
+      .map(p => ({ ...p, total: Number(cleanSettings[p.key] ?? 0) }))
+      .filter(p => p.total > 0);
+
+    setValidPrizes(valid);
+    setScreen('ready');
+
+  } catch (err) {
+    console.error('❌ 配置文件加载失败:', err);
+    alert('配置文件加载失败：' + err.message + '\n\n请检查 configuration 目录！');
+  } finally {
+    setLoading(false);
+  }
+
+  // 加载完再判断 version 是否跳过锁
+  const version = (cleanSettings.version || '').toLowerCase();
+  const skipLock = version.includes('dev');
+
+  if (skipLock) {
+    console.log('是dev版本绕过程序锁');
+    return;
+  } else {
+    console.log('不是dev版本，执行程序锁');
+  }
+
+  // 正常走锁检查
+  let isUnlocked = false;
+  try {
+    isUnlocked = await invoke('check_ftp_lock');
+  } catch (err) {
+    console.error('FTP 锁检查失败:', err);
+  }
+
+  if (isUnlocked) {
+    return;
+  }
+
+  // 锁未通过 → 密码输入
+  const password = prompt('程序已锁定，请输入密码（明文）：');
+
+  if (!password) {
+    alert('未输入密码，程序退出');
+    await invoke('exit_app');
+    return;
+  }
+
+  const correct = await invoke('verify_password', { password });
+
+  if (correct) {
+    alert('密码正确，解锁成功！');
+    return;
+  } else {
+    alert('密码错误，程序退出');
+    await invoke('exit_app');
+    return;
+  }
+	};
+
+	bootstrap();
+
+	return () => {
+    if (handleKeyDown) {
+      window.removeEventListener("keydown", handleKeyDown);
+    }
+  };
+}, []);
 
   // 滚动定时器
   useEffect(() => {
@@ -580,6 +649,10 @@ function App() {
                 resourcesPath = `错误：${err.message || '未知错误'}`;
               }
 
+							 // ★ 新增这一行：设置版本文本（如果 settings.version 存在就用，否则空）
+    const vText = settings.version ? ` ${settings.version}` : '';
+    setVersionText(vText);
+
               setOutputPath(outputPath);
               setResourcesPath(resourcesPath);
               setShowAbout(true);
@@ -614,8 +687,7 @@ function App() {
               className="modal-content"
               onClick={e => e.stopPropagation()}
             >
-              <h3>关于</h3>
-              <p>抽奖桌面程序 v1.0 (内部版)</p>
+              <h3>抽奖桌面程序{versionText} (内部版)</h3>
               <p>作者：yangzibox@163.com</p>
               <p>GitHub: https://github.com/yangzibox/work</p>
 
@@ -649,17 +721,19 @@ function App() {
                 </div>
               </div>
 
-              {/* 使用说明 - 加在最下面 */}
-              <div style={{ marginTop: '24px', textAlign: 'left', fontSize: '14px', color: '#333' }}>
+              <div style={{ marginTop: '20px', textAlign: 'left', fontSize: '14px', color: '#444' }}>
                 <p style={{ fontWeight: 'bold' }}>操作步骤：</p>
                 <p>修改 configuration 文件夹里的 settings.json 或 participants.csv 并保存。</p>
                 <p>返回程序主界面。</p>
                 <p>点击右上角“↻ 刷新配置”按钮。</p>
                 <p>程序会立即重新读取文件，更新奖项和人数，弹窗提示“配置刷新成功！”和当前人数。</p>
 
-                <p style={{ fontWeight: 'bold', marginTop: '16px' }}>注意：</p>
-                <p>修改后没变化？检查文件是否保存成功、路径是否正确、编码是否 UTF-8。</p>
-                <p>全屏抽奖中途改配置不会即时生效，先按 Esc 退出全屏，再刷新。</p>
+                <p style={{ fontWeight: 'bold', marginTop: '16px' }}>注意事项：</p>
+                <p>修改后没变化？检查文件是否保存成功、路径是否正确、编码是否UTF-8。</p>
+                <p>全屏抽奖中途改配置文件不会即时生效，先按 Esc 中断抽奖，再点刷新配置。</p>
+								<p>全屏抽奖中途按 Esc 会中断抽奖过程，请提前实验好配置，避免正式抽奖意外废止！</p>
+								<p>作者灵活就业中。</p>
+								<p>2026年3月</p>
               </div>
 
               <button 
@@ -703,7 +777,7 @@ function App() {
           ))}
         </div>
 
-        <p className="tips">空格键 → 继续下一轮　　Esc → 退出　　人数多时可滚动查看</p>
+        <p className="tips">空格键 → 继续下一轮　　Esc → 中断抽奖</p>
       </div>
     );
   }
@@ -716,14 +790,14 @@ function App() {
             下面抽取 <span className="prize-name">{currentPrize.name}</span>
           </h1>
           <h2 className="guide-count">名额 {currentPrize.total} 人</h2>
-          <p className="tips">空格键开始滚动　　Esc 退出全屏</p>
+          <p className="tips">空格键开始滚动　　Esc 中断抽奖</p>
         </>
       ) : (
         <>
           <h1 className={screen === 'rolling' ? 'rolling-text' : ''}>
             {displayText || '准备中...'}
           </h1>
-          <p className="tips">空格键停止　　Esc 退出全屏</p>
+          <p className="tips">空格键停止滚动　　Esc 中断抽奖</p>
         </>
       )}
     </div>

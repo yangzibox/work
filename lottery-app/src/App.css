@@ -1,27 +1,59 @@
-/* 全局基础 */
-body, html {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  font-family: 'Microsoft YaHei', sans-serif;
-  background: #000;
-  color: #fff;
-  overflow: hidden;
+/* =========================
+   全局基础（必须）
+========================= */
+* {
+  box-sizing: border-box;
 }
 
-/* 主界面（非全屏） */
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #c8102e;
+  overflow-x: hidden; /* 防横向抖动 */
+}
+
+/* =========================
+   主界面（已修复版）
+========================= */
 .main-screen {
-  height: 100vh;
-  width: 100vw;
+  position: fixed;
+  inset: 0;
+
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #c8102e, #ff4d4f);
+
+  background: #c8102e;
+  color: #fff;
+
+  overflow: hidden;
 }
 
-/* 按钮通用样式（合并 start-button、refresh-button、about-btn 的 hover 效果） */
+/* 只控制普通内容，不污染 header */
+.main-content {
+  text-align: center;
+  max-width: 90%;
+  margin: 0 auto;
+}
+
+/* =========================
+   右上角按钮（独立层）
+========================= */
+.header-buttons {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+
+  display: flex;
+  gap: 16px;
+
+  z-index: 9999;
+}
+
+/* =========================
+   按钮通用样式
+========================= */
 button {
   border: none;
   border-radius: 8px;
@@ -83,40 +115,33 @@ button {
   transform: scale(1.05);
 }
 
-/* 头部按钮容器 */
-.header-buttons {
-  position: fixed;
-  top: 20px;
-  right: 30px;
-  display: flex;
-  gap: 16px;
-  z-index: 9999;
-}
-
-/* 全屏基础（核心动画背景） */
+/* =========================
+   全屏（动画）
+========================= */
 .fullscreen {
   position: fixed;
   inset: 0;
+
   display: flex;
   flex-direction: column;
-  align-items: stretch;
   justify-content: center;
+  align-items: stretch;
+
   background: linear-gradient(to bottom, #c8102e, #ff4d4f, #000);
-  text-align: center;
   overflow: hidden;
-  box-sizing: border-box;
+
   background-size: 600% 600%;
   background-attachment: fixed;
 }
 
-/* 全屏动画触发 */
-.fullscreen.bg-anim-active .rolling-text {
-  background: transparent !important;
+/* 动画 */
+.fullscreen.bg-anim-active {
+  background: linear-gradient(135deg, #c8102e, #ff4d4f, #8b0000, #ff4d4f, #c8102e);
+  animation: redBreath 6s ease-in-out infinite alternate;
 }
 
-.fullscreen.bg-anim-active {
-  background: linear-gradient(135deg, #c8102e, #ff4d4f, #8b0000, #ff4d4f, #c8102e) !important;
-  animation: redBreath 6s ease-in-out infinite alternate !important;
+.fullscreen.bg-anim-active .rolling-text {
+  background: transparent;
 }
 
 @keyframes redBreath {
@@ -125,18 +150,120 @@ button {
   100% { background-position: 0% 50%; filter: brightness(0.95); }
 }
 
-/* 强制子元素不覆盖背景（result-screen、finish 等） */
+/* 子元素透明 */
 .fullscreen > *,
 .result-screen,
 .finish-title {
-  background: transparent !important;
+  background: transparent;
 }
 
-/* 引导页（prize_guide） */
+/* =========================
+   滚动文字
+========================= */
+.rolling-text {
+  font-size: 10vw;
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 0;
+  padding: 0;
+
+  animation: blink 1.2s infinite alternate;
+  text-shadow: 0 0 30px #ff0000;
+  color: #ffeb3b;
+
+  background: transparent;
+}
+
+@keyframes blink {
+  from { opacity: 0.6; }
+  to   { opacity: 1; }
+}
+
+/* =========================
+   结果页
+========================= */
+.result-screen h1 {
+  font-size: 5vw;
+  color: #ffeb3b;
+  text-shadow: 0 0 30px #ff0000;
+  margin-bottom: 6vh;
+  text-align: center;
+}
+
+.winners-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+
+  gap: 20px 28px;
+  padding: 0 5% 18vh 5%;
+
+  width: 100%;
+  max-height: 70vh;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* =========================
+   卡片
+========================= */
+.winner-item {
+  background: rgba(200, 16, 46, 0.65);
+  border-radius: 12px;
+  padding: 12px 10px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+}
+
+.winner-name {
+  font-size: 1.7rem;
+  font-weight: bold;
+  color: #ffeb3b;
+}
+
+.winner-id {
+  font-size: 1.2rem;
+  color: #fff;
+}
+
+.winner-extra {
+  font-size: 1rem;
+  color: #ddd;
+}
+
+/* =========================
+   提示
+========================= */
+.tips {
+  position: fixed;
+  bottom: 1.5vh;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.1rem;
+  color: rgba(255,255,255,0.7);
+}
+
+/* =========================
+   结束页
+========================= */
+.finish-title {
+  font-size: 8rem;
+  color: #ffeb3b;
+  text-align: center;
+}
+
+/* =========================
+   引导页（prize_guide）
+========================= */
 .guide-title {
   font-size: 6vw;
   margin: 10vh 0 2rem 0;
-  width: 100vw;
+  width: 100%;
   color: #ffeb3b;
 }
 
@@ -152,218 +279,72 @@ button {
   text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
 }
 
-/* 滚动文字 */
-.rolling-text {
-  font-size: 10vw;
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 0;
-  animation: blink 1.2s infinite alternate;
-  text-shadow: 0 0 30px #ff0000;
-  color: #ffeb3b;
-  background: transparent !important;     /* 必须透明，让底层动画透出来 */
-  pointer-events: none;                    /* 防止挡住交互（可选） */
-}
-
-@keyframes blink {
-  from { opacity: 0.6; }
-  to   { opacity: 1; }
-}
-
-/* 结果页 */
-.result-screen h1 {
-  font-size: 5vw;
-  color: #ffeb3b;
-  text-shadow: 0 0 30px #ff0000;
-  margin: 0 0 6vh 0;
-  width: 100vw;
-  flex-shrink: 0;
-}
-
-.winners-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px 28px;
-  padding: 0 5vw 18vh 5vw;
-  width: 100vw;
-  max-height: 70vh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scroll-behavior: smooth;
-  scrollbar-width: thin;
-  scrollbar-color: #ffeb3b rgba(200, 16, 46, 0.8);
-  box-sizing: border-box;
-}
-
-.winners-grid.center-mode {
-  min-height: 65vh;
-  align-content: center;
-  justify-content: center;
-}
-
-.winners-grid.scroll-mode {
-  align-content: start;
-}
-
-.winners-grid::-webkit-scrollbar {
-  width: 14px;
-}
-
-.winners-grid::-webkit-scrollbar-track {
-  background: rgba(200, 16, 46, 0.8);
-  border-radius: 7px;
-}
-
-.winners-grid::-webkit-scrollbar-thumb {
-  background: linear-gradient(#ffeb3b, #ffd700);
-  border-radius: 7px;
-  border: 3px solid rgba(200, 16, 46, 0.8);
-}
-
-.winners-grid::-webkit-scrollbar-thumb:hover {
-  background: #fff176;
-}
-
-.winner-item {
-  background: rgba(200, 16, 46, 0.65);
-  border-radius: 12px;
-  padding: 12px 10px;
-  text-align: center;
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
-  transition: transform 0.2s ease;
-  min-width: 220px;
-}
-
-.winner-item:hover {
-  transform: translateY(-6px);
-}
-
-.winner-name {
-  font-size: 1.7rem;
-  font-weight: bold;
-  margin-bottom: 4px;
-  color: #ffeb3b;
-}
-
-.winner-id {
-  font-size: 1.2rem;
-  color: #ffffff;
-  margin-bottom: 4px;
-}
-
-.winner-extra {
-  font-size: 1rem;
-  color: #ddd;
-  line-height: 1.3;
-}
-
-/* 提示文字 */
-.tips {
-  position: fixed;
-  bottom: 1.5vh;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(200, 16, 46, 0.5);
-  padding: 4px 16px;
-  border-radius: 6px;
-  text-align: center;
-  z-index: 10;
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-/* 结束页 */
-.finish-title {
-  font-size: 8rem;
-  color: #ffeb3b;
-  text-shadow: 0 0 40px #ff0000;
-  text-align: center;
-  margin: 0 auto;
-  width: 90vw;
-  line-height: 1.2;
-  letter-spacing: 0.05em;
-}
-
-/* 音量开关 */
+/* =========================
+   音量开关（右下角）
+========================= */
 .mute-toggle {
-  position: absolute;
+  position: fixed;
   bottom: 15px;
   right: 15px;
-  z-index: 10;
+  z-index: 1000;
 }
 
-.mute-toggle label {
-  cursor: pointer;
-  padding: 6px;
-  border-radius: 4px;
-}
-
-.mute-toggle label:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.mute-toggle input[type="checkbox"] {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-  margin: 0;
-  pointer-events: none;
-}
-
-.speaker-icon {
-  font-size: 20px;
-  color: white;
-}
-
-/* 关于弹窗 */
+/* =========================
+   弹窗遮罩
+========================= */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);   /* 从 0.6 改成 0.4，变浅一些 */
+  background: rgba(0, 0, 0, 0.3);
+
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+
+  overflow: hidden;
+
   z-index: 9999;
 }
 
+/* =========================
+   弹窗内容（内部滚动）
+========================= */
 .modal-content {
   background: #ffffff;
   padding: 24px;
   border-radius: 12px;
+
   max-width: 520px;
   width: 90%;
-  max-height: 80vh;             /* 最多占屏幕高度80%，超出自动滚动 */
-  overflow-y: auto;             /* 垂直滚动条出现 */
+
+  max-height: 80vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+
   text-align: center;
-  color: #222222;
+  color: #222;
   box-shadow: 0 8px 32px rgba(0,0,0,0.25);
 }
 
-/* 美化滚动条（可选，但 Windows 上好看） */
-.modal-content::-webkit-scrollbar {
-  width: 8px;
-}
-.modal-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-.modal-content::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
-}
-.modal-content::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
+/* =========================
+   路径显示
+========================= */
+.path-box {
+  background: #f8f9fa;
+  padding: 12px 16px;
+  border-radius: 8px;
 
-.modal-content h3 {
-  margin: 0 0 16px;
-  color: #111111;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+
+  border: 1px solid #dee2e6;
+  color: #000;
+
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  overflow-x: hidden;
 }
 
 .path-section {
@@ -374,39 +355,5 @@ button {
 .path-section p {
   margin: 0 0 6px;
   font-weight: 600;
-  color: #444444;
-}
-
-.path-box {
-  background: #f8f9fa;
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-family: Consolas, 'Courier New', monospace;
-  font-size: 14px;
-  line-height: 1.5;
-  word-break: break-all;
-  border: 1px solid #dee2e6;
-  color: #000000;
-  cursor: text;
-  user-select: text;
-  min-height: 60px;
-}
-
-.path-box:hover {
-  background: #e9ecef;
-}
-
-.close-btn {
-  margin-top: 24px;
-  padding: 10px 32px;
-  background: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 16px;
-}
-
-.close-btn:hover {
-  background: #5a6268;
+  color: #444;
 }

@@ -24,7 +24,8 @@ pub fn run() {
 		read_config_file, 
 		get_exe_dir,
 		check_ftp_lock,
-		verify_password
+		verify_password,
+		exit_app
 	])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -87,21 +88,26 @@ fn get_exe_dir() -> Result<String, String> {
 
 
 
-
 #[tauri::command]
 fn check_ftp_lock() -> Result<bool, String> {
     let url = "ftp://admin:DefDef123$@lisirun.asuscomm.com/160/yangzibox/luckydrawbox.txt";
 
-    let output = std::process::Command::new("curl")
-        .arg("-s")                    // 静默
-        .arg("--fail")                // 失败返回非0
-        .arg("--max-time")            // 总超时5秒（连接+传输）
-        .arg("5")
-        .arg(url)
-        .output()
+    let mut cmd = std::process::Command::new("curl");
+    cmd.arg("-s")
+       .arg("--fail")
+       .arg("--max-time").arg("5")
+       .arg(url);
+
+    // Windows 隐藏窗口关键参数
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000);  // CREATE_NO_WINDOW = 0x08000000
+    }
+
+    let output = cmd.output()
         .map_err(|e| format!("curl 执行失败: {}", e))?;
 
-    // 任何失败（超时、网络错、服务器错）都视为未解锁
     if !output.status.success() {
         return Ok(false);
     }
@@ -110,8 +116,30 @@ fn check_ftp_lock() -> Result<bool, String> {
     Ok(content == "YES")
 }
 
+
 #[tauri::command]
 fn verify_password(password: String) -> bool {
-    // 密码明文固定为 "lisirun"（大小写敏感）
-    password == "lisirun"
+    use chrono::prelude::*;  // 需要引入 chrono 库来获取日期
+
+    // 获取当前本地日期
+    let today = Local::now();
+    let day = today.day();  // 日（1-31）
+
+    // 补零成两位字符串
+    let day_str = format!("{:02}", day);  // "01" 到 "31"
+
+    // 拆开十位和个位
+    let shi_wei = &day_str[0..1];  // 十位字符，如 "0" 或 "2"
+    let ge_wei = &day_str[1..2];   // 个位字符，如 "1" 或 "2"
+
+    // 拼接成当天密码：十位 + "lsr" + 个位，【这就是密码】
+    let expected = format!("{}lsr{}", shi_wei, ge_wei);
+
+    // 对比用户输入（忽略大小写可选）
+    password.to_lowercase() == expected.to_lowercase()
+}
+
+#[tauri::command]
+fn exit_app() {
+    std::process::exit(0);
 }
