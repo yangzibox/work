@@ -1,6 +1,9 @@
 {
   "version": "v1.0.1",
 
+  "//scheme说明": "可选： classic-red, neon-purple, snow-season, flyin-red (吃电脑性能) ",
+  "scheme": "classic-red",
+
   "//read_fields_max说明": "读取 paticipants.csv 时每行最多读取的字段数（列数），超出部分会被忽略，建议设置为 CSV 实际最大列数",
   "read_fields_max": 4,
 

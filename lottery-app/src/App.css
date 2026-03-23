@@ -8,7 +8,7 @@
 html, body {
   margin: 0;
   padding: 0;
-  background: #c8102e;
+  background: #b71c1c; /* 应用程序风格深色背景 */
   overflow-x: hidden; /* 防横向抖动 */
 }
 
@@ -23,18 +23,25 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-
-  background: #c8102e;
+  /* 原始红色 #c8102e */
+  background: radial-gradient(circle at center, #ff1744 0%, #d50000 50%, #b71c1c 100%);
   color: #fff;
 
   overflow: hidden;
 }
+
+.main-screen p {
+  color: #f4c542; /* 黄色 */
+  font-weight: bold;
+}
+
 
 /* 只控制普通内容，不污染 header */
 .main-content {
   text-align: center;
   max-width: 90%;
   margin: 0 auto;
+  color: inherit; /* 继承 main-screen 颜色 */
 }
 
 /* =========================
@@ -59,33 +66,29 @@ button {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+
+  background: #f4c542; /* 主体金黄色 */
+  color: #5a3b00;      /* 深棕色文字（更有质感） */
 }
 
 .start-button {
   padding: 20px 60px;
   font-size: 36px;
-  background: #ffd700;
-  color: #c8102e;
+  background: #f4c542;  /* 金黄色 */
+  color: #5a3b00;        /* 深棕字 */
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
   margin: 20px;
 }
 
 .start-button:hover {
-  background: #ffeb3b;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
+  background: #ffd84d;   /* 更亮一点的金色 */
+  box-shadow: 0 0 40px #f4c54288, 0 0 80px #c8102eaa;  /* 金光 + 红光晕 */
 }
 
 .start-button:active {
   transform: translateY(4px) scale(0.96);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
-  background: #ffcc00;
-}
-
-.start-button:disabled,
-.refresh-button:disabled {
-  background: #666;
-  color: #aaa;
-  cursor: not-allowed;
+  background: #e6b800;   /* 按下更深一点 */
 }
 
 .refresh-button,
@@ -96,23 +99,30 @@ button {
 }
 
 .refresh-button {
-  background: rgba(255, 215, 0, 0.9);
-  color: #c8102e;
+  background: #f4c542;
+  color: #5a3b00;
 }
 
 .refresh-button:hover {
-  background: #ffeb3b;
+  background: #ffd84d;
   transform: scale(1.05);
 }
 
 .about-btn {
-  background: rgba(255, 69, 0, 0.9);
-  color: white;
+  background: #f0b90b; /* 稍微深一点区分 */
+  color: #5a3b00;
 }
 
 .about-btn:hover {
-  background: #ff4500;
+  background: #ffd84d;
   transform: scale(1.05);
+}
+
+.start-button:disabled,
+.refresh-button:disabled {
+  background: #555555;
+  color: #888888;
+  cursor: not-allowed;
 }
 
 /* =========================
@@ -133,7 +143,6 @@ button {
   background-size: 600% 600%;
   background-attachment: fixed;
 }
-
 
 /* 子元素透明 */
 .fullscreen > *,
@@ -162,8 +171,6 @@ button {
 
   background: transparent;
 }
-
-
 
 /* =========================
    结果页
@@ -226,7 +233,7 @@ button {
   left: 50%;
   transform: translateX(-50%);
   font-size: 1.1rem;
-  color: rgba(255,255,255,0.7);
+  color: #bbbbbb; /* 应用程序风格提示文字 */
 }
 
 /* =========================
@@ -245,7 +252,7 @@ button {
   font-size: 6vw;
   margin: 10vh 0 2rem 0;
   width: 100%;
-  color: #ffeb3b;
+  color: #e0e0e0; /* 应用程序风格浅灰 */
 }
 
 .prize-name {
@@ -255,7 +262,7 @@ button {
 
 .guide-count {
   font-size: 4vw;
-  color: #ffeb3b;
+  color: #cccccc; /* 应用程序风格数量文字 */
   margin: 1rem 0 4rem 0;
   text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
 }
@@ -338,7 +345,6 @@ button {
   font-weight: 600;
   color: #444;
 }
-
 
 /* --- 动画 schemes 部分 --- */
 
@@ -647,4 +653,138 @@ html, body, .fullscreen {
 @keyframes snowBlink {
   0%   { opacity: 0.85; text-shadow: 0 0 5px #bbf0ff, 0 0 10px #ccefff; }
   100% { opacity: 1;   text-shadow: 0 0 10px #bbf0ff, 0 0 20px #ccefff, 0 0 40px #ffffff; }
+}
+
+
+/* =============================================
+   方案：flyin-red（飞入红色风格 - 极致丝滑版）
+   ============================================= */
+
+/* 主题控制颜色 + 拉伸渐变，确保铺满 */
+.fullscreen.scheme-flyin-red,
+.fullscreen.result-screen.scheme-flyin-red {
+  background: linear-gradient(135deg, #c8102e, #ff4d4f 20%, #8b0000 40%, #ff4d4f 60%, #c8102e);
+  background-size: 400% 400% !important;
+  min-height: 100vh !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 开启动画（时长拉长，减轻负载） */
+.fullscreen.scheme-flyin-red.bg-anim-active,
+.fullscreen.result-screen.scheme-flyin-red {
+  animation: energySweep 20s cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
+}
+
+/* 所有文字强制清晰、稳定显示 */
+.fullscreen.scheme-flyin-red .rolling-text,
+.fullscreen.scheme-flyin-red .finish-title,
+.fullscreen.scheme-flyin-red .guide-title,
+.fullscreen.scheme-flyin-red .prize-name,
+.fullscreen.scheme-flyin-red .guide-count,
+.fullscreen.result-screen.scheme-flyin-red > h1 {
+  filter: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  position: relative;
+  z-index: 10;
+}
+
+/* winner-name、winner-id、winner-extra 一起飞入（0.3s延迟，极致丝滑） */
+.fullscreen.result-screen.scheme-flyin-red .winner-name,
+.fullscreen.result-screen.scheme-flyin-red .winner-id,
+.fullscreen.result-screen.scheme-flyin-red .winner-extra {
+  opacity: 0;
+  transform: translateY(-60vh) scale(0.65);
+  position: relative;
+  z-index: 20 !important;
+  will-change: transform, opacity;
+  backface-visibility: hidden; /* 防闪烁 + GPU 优化 */
+  animation: nameIdExtraFlyIn 2.6s ease-in-out forwards;
+  animation-delay: 0.3s;
+}
+
+/* 极致丝滑飞入动画 */
+@keyframes nameIdExtraFlyIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-60vh) scale(0.65);
+    text-shadow: 0 0 0 #ff0000;
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(0) scale(1.12);
+    text-shadow: 0 0 100px #ff0000, 0 0 200px #ff4d4f;
+  }
+  55% {
+    transform: translateY(0) scale(1.12);
+  }
+  /* 震动幅度极轻（几乎不卡） */
+  60%  { transform: translateY(-10px) scale(1.06); }
+  65%  { transform: translateY(8px) scale(1.04); }
+  70%  { transform: translateY(-6px) scale(1.03); }
+  75%  { transform: translateY(4px) scale(1.02); }
+  80%  { transform: translateY(-2px) scale(1.01); }
+  85%, 100% {
+    transform: translateY(0) scale(1);
+    text-shadow: 0 0 40px #ff0000, 0 0 80px #ff4d4f;
+    opacity: 1;
+  }
+}
+
+/* 加大间距（保持原样） */
+.fullscreen.result-screen.scheme-flyin-red .winner-name {
+  color: #ffff00;
+  text-shadow: 0 0 20px #ff0000;
+  margin-bottom: 24px !important;
+}
+
+.fullscreen.result-screen.scheme-flyin-red .winner-id {
+  color: #ffffff;
+  text-shadow: 0 0 5px #ff0000;
+  margin-top: 16px !important;
+  margin-bottom: 16px !important;
+}
+
+.fullscreen.result-screen.scheme-flyin-red .winner-extra {
+  color: #ffffff;
+  text-shadow: 0 0 5px #ff0000;
+  margin-top: 16px !important;
+}
+
+/* 能量扫动动画（时长拉长，减轻同时负载） */
+@keyframes energySweep {
+  0%   { background-position: 0% 0%; filter: brightness(0.95) saturate(1.05); }
+  30%  { background-position: 60% 60%; filter: brightness(1.25) saturate(1.3); }
+  50%  { background-position: 100% 100%; filter: brightness(1.45) saturate(1.5); }
+  70%  { background-position: 60% 60%; filter: brightness(1.25) saturate(1.3); }
+  100% { background-position: 0% 0%; filter: brightness(0.95) saturate(1.05); }
+}
+
+/* 滚动文字闪烁 */
+@keyframes redBlink {
+  0%   { opacity: 0.85; text-shadow: 0 0 20px #ff0000; }
+  100% { opacity: 1;    text-shadow: 0 0 40px #ff0000; }
+}
+
+/* 其他样式保持原样 */
+.fullscreen.scheme-flyin-red.result-screen > h1 {
+  color: #ffff00;
+  text-shadow: 0 0 20px #ff0000, 0 0 10px #8b0000;
+  font-weight: bold;
+  font-size: 6vw;
+  z-index: 10;
+}
+
+.fullscreen.scheme-flyin-red .prize-name {
+  color: #ffffff;
+  text-shadow: 0 0 10px #ff0000, 0 0 5px #8b0000;
+  z-index: 10;
+}
+
+.fullscreen.scheme-flyin-red .guide-count {
+  color: #ffeb3b;
+  text-shadow: 0 0 10px #ff0000, 0 0 5px #8b0000;
+  z-index: 10;
 }

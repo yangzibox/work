@@ -14,12 +14,12 @@
     "windows": [
       {
         "title": "LuckyDrawBox",
-        "width": 800,
-        "height": 600,
+        "width": 720,
+        "height": 540,
         "resizable": true,
         "fullscreen": false,
         "visible": true,         
-        "backgroundColor": "#c8102e",
+        "backgroundColor": "#b71c1c",
 		"center": true
       }
     ],
