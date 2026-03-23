@@ -605,6 +605,9 @@ useEffect(() => {
 
   const currentPrize = validPrizes[currentPrizeIndex] || {};
   const currentPerson = participants[currentIndex] || {};
+
+	const scheme = settings.scheme || 'classic-red';  // 如果 settings 里没写，默认 classic-red
+
   const displayText = Array(settings.display_fields || 2)
     .fill('')
     .map((_, i) => Object.values(currentPerson)[i] || '')
@@ -749,9 +752,10 @@ useEffect(() => {
     );
   }
 
+
   if (screen === 'finish') {
     return (
-      <div className="fullscreen">
+      <div className={`fullscreen scheme-${scheme} bg-anim-active`}>
         <h1 className="finish-title">抽奖结束</h1>
         <p className="tips">感谢参与 • Esc 退出全屏</p>
       </div>
@@ -760,7 +764,7 @@ useEffect(() => {
 
   if (screen === 'result') {
     return (
-      <div className="fullscreen result-screen bg-anim-active">
+      <div className={`fullscreen result-screen bg-anim-active scheme-${scheme}`}>
         <h1>恭喜以下幸运儿！</h1>
 
         <div 
@@ -782,8 +786,10 @@ useEffect(() => {
     );
   }
 
+
   return (
-    <div className={`fullscreen ${isFullscreen ? 'bg-anim-active' : ''}`}>
+
+		<div className={`fullscreen ${isFullscreen ? 'bg-anim-active' : ''} scheme-${scheme}`}>
       {screen === 'prize_guide' ? (
         <>
           <h1 className="guide-title">
