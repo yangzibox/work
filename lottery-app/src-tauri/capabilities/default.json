@@ -6,15 +6,20 @@
     "main"
   ],
   "permissions": [
-	"core:default",
-    "fs:default", 
+    "core:default",
+    "fs:default",
     {
       "identifier": "fs:write-all",
-      "allow": ["$APPLOCALDATA/**"]
+      "allow": [
+        "$APPLOCALDATA/**"
+      ]
     },
     {
       "identifier": "fs:read-all",
-      "allow": ["$APPLOCALDATA/**"]
-    }
+      "allow": [
+        "$APPLOCALDATA/**"
+      ]
+    },
+    "opener:default"
   ]
 }

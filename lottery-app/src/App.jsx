@@ -3,6 +3,37 @@ import { appLocalDataDir, resourceDir } from '@tauri-apps/api/path';
 import { invoke } from '@tauri-apps/api/core';
 import './App.css';
 
+
+// ====================== 打开系统文件夹（通用函数） ======================
+const openSystemFolder = async (folderPath) => {
+  if (!folderPath || typeof folderPath !== 'string') {
+    alert('错误：路径为空，无法打开文件夹');
+    return;
+  }
+
+  // 清理路径
+  const cleanPath = folderPath.trim().replace(/^["']|["']$/g, '');
+
+  try {
+    await invoke('open_system_folder', { path: cleanPath });
+    // 成功时不弹任何提示（安静打开）
+
+  } catch (err) {
+    const msg = err.toString().toLowerCase();
+
+    if (msg.includes('not allowed') || msg.includes('permission')) {
+      alert('打开失败：权限不足\n\n可能原因：\n1. 程序权限配置问题\n2. 杀毒软件拦截\n3. 请尝试以管理员身份运行程序');
+    } 
+    else if (msg.includes('not found') || msg.includes('no such')) {
+      alert('打开失败：该文件夹路径不存在');
+    } 
+    else {
+      alert(`打开文件夹失败\n\n${err.toString()}`);
+    }
+  }
+};
+
+
 // 简单 CSV 行解析（支持带引号的字段）
 const parseCSVLine = (line) => {
   const result = [];
@@ -694,35 +725,120 @@ useEffect(() => {
               <p>作者：yangzibox@163.com</p>
               <p>GitHub: https://github.com/yangzibox/work</p>
 
-              <div className="path-section">
-                <p>配置目录（configuration 文件夹）：</p>
-                <div 
-                  className="path-box"
-                  onDoubleClick={(e) => {
-                    const range = document.createRange();
-                    range.selectNodeContents(e.currentTarget);
-                    window.getSelection().removeAllRanges();
-                    window.getSelection().addRange(range);
-                  }}
-                >
-                  {resourcesPath}
-                </div>
-              </div>
+              {/* ==================== 配置目录（configuration） ==================== */}
+							<div className="path-section">
+								<p>配置目录（configuration 文件夹）：</p>
+								
+								<div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+									<div 
+										className="path-box"
+										onDoubleClick={(e) => {
+											const range = document.createRange();
+											range.selectNodeContents(e.currentTarget);
+											window.getSelection().removeAllRanges();
+											window.getSelection().addRange(range);
+										}}
+										style={{ flex: 1 }}
+									>
+										{resourcesPath || '正在获取路径...'}
+									</div>
 
-              <div className="path-section">
-                <p>中奖结果保存路径（output）：</p>
-                <div 
-                  className="path-box"
-                  onDoubleClick={(e) => {
-                    const range = document.createRange();
-                    range.selectNodeContents(e.currentTarget);
-                    window.getSelection().removeAllRanges();
-                    window.getSelection().addRange(range);
-                  }}
-                >
-                  {outputPath}
-                </div>
-              </div>
+									{/* 浅灰色 + 点击效果按钮 */}
+									<button 
+										onClick={() => {
+											if (resourcesPath) {
+												openSystemFolder(resourcesPath);
+											} else {
+												alert('配置文件路径尚未加载，请稍后再试');
+											}
+										}}
+										disabled={!resourcesPath}
+										style={{
+											padding: '6px 14px',
+											backgroundColor: '#8b949e',        // 更浅的灰色
+											color: 'white',
+											border: 'none',
+											borderRadius: '4px',
+											cursor: resourcesPath ? 'pointer' : 'not-allowed',
+											fontSize: '13px',
+											whiteSpace: 'nowrap',
+											height: '32px',
+											display: 'flex',
+											alignItems: 'center',
+											gap: '5px',
+											transition: 'all 0.2s ease',
+											boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+										}}
+										onMouseDown={(e) => {
+											if (resourcesPath) {
+												e.currentTarget.style.transform = 'scale(0.95)';
+												e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.15)';
+											}
+										}}
+										onMouseUp={(e) => {
+											e.currentTarget.style.transform = 'scale(1)';
+										}}
+										onMouseLeave={(e) => {
+											e.currentTarget.style.transform = 'scale(1)';
+										}}
+									>
+										📂 打开
+									</button>
+								</div>
+							</div>
+
+              {/* ==================== 输出目录（output） ==================== */}
+							<div className="path-section">
+								<p>中奖结果保存路径（output）：</p>
+								
+								<div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+									<div 
+										className="path-box"
+										onDoubleClick={(e) => {
+											const range = document.createRange();
+											range.selectNodeContents(e.currentTarget);
+											window.getSelection().removeAllRanges();
+											window.getSelection().addRange(range);
+										}}
+										style={{ flex: 1 }}
+									>
+										{outputPath}
+									</div>
+
+									{/* 浅灰色 + 点击效果按钮 */}
+									<button 
+										onClick={() => openSystemFolder(outputPath)}
+										style={{
+											padding: '6px 14px',
+											backgroundColor: '#8b949e',        // 更浅的灰色
+											color: 'white',
+											border: 'none',
+											borderRadius: '4px',
+											cursor: 'pointer',
+											fontSize: '13px',
+											whiteSpace: 'nowrap',
+											height: '32px',
+											display: 'flex',
+											alignItems: 'center',
+											gap: '5px',
+											transition: 'all 0.2s ease',
+											boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+										}}
+										onMouseDown={(e) => {
+											e.currentTarget.style.transform = 'scale(0.95)';
+											e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.15)';
+										}}
+										onMouseUp={(e) => {
+											e.currentTarget.style.transform = 'scale(1)';
+										}}
+										onMouseLeave={(e) => {
+											e.currentTarget.style.transform = 'scale(1)';
+										}}
+									>
+										📂 打开
+									</button>
+								</div>
+							</div>
 
               <div style={{ marginTop: '20px', textAlign: 'left', fontSize: '14px', color: '#444' }}>
                 <p style={{ fontWeight: 'bold' }}>操作步骤：</p>
