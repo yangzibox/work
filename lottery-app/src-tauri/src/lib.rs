@@ -4,6 +4,8 @@
 
 use tauri_plugin_opener::OpenerExt;
 use std::path::PathBuf;
+use std::fs;
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -22,7 +24,9 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             show_main_window,
+	    get_config_dir,
             read_config_file,
+	    write_config_file,
             get_exe_dir,
             check_ftp_lock,
             verify_password,
@@ -171,4 +175,74 @@ async fn open_system_folder(path: String, app: tauri::AppHandle) -> Result<(), S
         .map_err(|e| format!("打开文件夹失败: {}", e))?;
 
     Ok(())
+}
+
+
+// ==================== 写入配置文件（与 read_config_file 路径完全一致） ====================
+#[tauri::command]
+fn write_config_file(file_name: String, content: String, _app: tauri::AppHandle) -> Result<(), String> {
+    let is_dev = cfg!(debug_assertions);
+
+    let config_path: PathBuf = if is_dev {
+        // 开发模式：写入 public/configuration
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let project_root = manifest_dir
+            .parent()
+            .ok_or("无法获取项目根目录".to_string())?;
+        project_root
+            .join("public")
+            .join("configuration")
+            .join(&file_name)
+    } else {
+        // 发布模式：写入 resources/configuration
+        let exe_path = std::env::current_exe().map_err(|e| format!("无法获取 exe 路径: {}", e))?;
+        let exe_dir = exe_path
+            .parent()
+            .ok_or("无法获取 exe 所在目录".to_string())?;
+        exe_dir
+            .join("resources")
+            .join("configuration")
+            .join(&file_name)
+    };
+
+    // 确保目录存在
+    if let Some(parent) = config_path.parent() {
+        if !parent.exists() {
+            fs::create_dir_all(parent)
+                .map_err(|e| format!("创建 configuration 目录失败: {}", e))?;
+        }
+    }
+
+    fs::write(&config_path, content.as_bytes())
+        .map_err(|e| format!("写入文件失败: {}", e))?;
+
+    println!("✅ 配置已成功写入: {}", config_path.display());
+    Ok(())
+}
+
+// ==================== 获取 configuration 文件夹路径（与 read_config_file 完全一致） ====================
+#[tauri::command]
+fn get_config_dir() -> Result<String, String> {
+    let is_dev = cfg!(debug_assertions);
+
+    let config_path: std::path::PathBuf = if is_dev {
+        // dev 模式：严格按照 read_config_file 的逻辑
+        let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let project_root = manifest_dir
+            .parent()                       // 去掉 src-tauri
+            .ok_or("无法获取项目根目录".to_string())?;
+
+        project_root.join("public").join("configuration")
+    } else {
+        // release 模式：严格按照 read_config_file 的逻辑
+        let exe_path = std::env::current_exe()
+            .map_err(|e| format!("无法获取 exe 路径: {}", e))?;
+        let exe_dir = exe_path
+            .parent()
+            .ok_or("无法获取 exe 所在目录".to_string())?;
+
+        exe_dir.join("resources").join("configuration")
+    };
+
+    Ok(config_path.to_string_lossy().into_owned())
 }

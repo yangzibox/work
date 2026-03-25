@@ -1,42 +1,29 @@
 {
   "version": "v1.0.1",
-
   "//scheme说明": "可选： classic-red, neon-purple, snow-season, flyin-red (吃电脑性能,一个奖项超过20人慎用。) ",
-  "scheme": "classic-red",
-
+  "scheme": "snow-season",
   "//read_fields_max说明": "读取 paticipants.csv 时每行最多读取的字段数（列数），超出部分会被忽略，建议设置为 CSV 实际最大列数",
   "read_fields_max": 4,
-
   "//display_fields说明": "滚动显示时只显示前几列的内容，例如 2 表示只显示 id + 姓名，职务和部门不显示在屏幕上",
   "display_fields": 2,
-
   "//grand-prize说明": "特等奖获奖人数（0 表示无特等奖）",
   "grand-prize": 0,
-
   "//1st-prize说明": "一等奖获奖人数",
   "1st-prize": 1,
-
   "//2nd-prize说明": "二等奖获奖人数",
   "2nd-prize": 2,
-
   "//3rd-prize说明": "三等奖获奖人数",
   "3rd-prize": 3,
-
   "//4th-prize说明": "四等奖获奖人数",
-  "4th-prize": 4,
-
+  "4th-prize": 0,
   "//5th-prize说明": "五等奖获奖人数",
-  "5th-prize": 5,
-
+  "5th-prize": 0,
   "//6th-prize说明": "六等奖获奖人数（从这里开始抽取）",
   "6th-prize": 0,
-
   "//hotpot-prize说明": "火锅等奖获奖人数",
-  "hotpot-prize": 20,
-
+  "hotpot-prize": 0,
   "//grand-prize-pred说明": "特等奖 id",
   "grand-prize-pred": "",
-
   "//1st-prize-pred说明": "一等奖 id",
   "1st-prize-pred": "A000"
 }

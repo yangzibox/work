@@ -4,6 +4,27 @@ import { invoke } from '@tauri-apps/api/core';
 import './App.css';
 
 
+
+const getPrizeFlowText = (settings) => {
+  const prizeList = [
+    { name: '火锅奖', key: 'hotpot-prize' },
+    { name: '六等奖', key: '6th-prize' },
+    { name: '五等奖', key: '5th-prize' },
+    { name: '四等奖', key: '4th-prize' },
+    { name: '三等奖', key: '3rd-prize' },
+    { name: '二等奖', key: '2nd-prize' },
+    { name: '一等奖', key: '1st-prize' },
+    { name: '特等奖', key: 'grand-prize' },
+  ];
+
+  const flow = prizeList
+    .filter(p => Number(settings[p.key] || 0) > 0)
+    .map(p => `${p.name}(${settings[p.key]})`)
+    .join(' → ');
+
+  return flow || '暂无奖项配置';
+};
+
 // ====================== 打开系统文件夹（通用函数） ======================
 const openSystemFolder = async (folderPath) => {
   if (!folderPath || typeof folderPath !== 'string') {
@@ -151,6 +172,12 @@ function App() {
   const [resourcesPath, setResourcesPath] = useState('');
 
 	const [versionText, setVersionText] = useState('');
+
+const [showConfigModal, setShowConfigModal] = useState(false);
+const [modalParticipantsCount, setModalParticipantsCount] = useState(0);
+const [modalPrizeFlow, setModalPrizeFlow] = useState('');
+
+const [editSettings, setEditSettings] = useState({});
 
   const isTauri = !!window.__TAURI__;
 
@@ -600,39 +627,84 @@ useEffect(() => {
     return { validPrizes, prizesWithTotal };
   };
 
-  const refreshConfig = async () => {
-    setLoading(true);
-    try {
-      console.log('手动刷新配置...');
+  const handleRefreshConfig = async () => {
+		setLoading(true);
+		try {
+			const rawSettings = await loadSettings();
+			const cleanSettings = Object.fromEntries(
+				Object.entries(rawSettings).filter(([k]) => !k.startsWith('//'))
+			);
 
-      const rawSettings = await loadSettings();
-      const cleanSettings = Object.fromEntries(
-        Object.entries(rawSettings).filter(([k]) => !k.startsWith('//'))
-      );
+			// 更新主界面
+			setSettings(cleanSettings);
 
-      const csvText = await loadParticipantsCsv();
-      const readMax = Number(cleanSettings.read_fields_max ?? 4);
-      const data = parseParticipantsCSVFromString(csvText, readMax);
+			// 更新参与者名单
+			const csvText = await loadParticipantsCsv();
+			const data = parseParticipantsCSVFromString(csvText, Number(cleanSettings.read_fields_max || 4));
+			setParticipants(data);
 
-      const { validPrizes: newValidPrizes } = validatePrizes(cleanSettings);
+			// 更新显示数据
+			const count = data.length;
+			const flow = getPrizeFlowText(cleanSettings);
 
-      setSettings(cleanSettings);
-      setParticipants(data);
-      setValidPrizes(newValidPrizes);
+			setModalParticipantsCount(count);
+			setModalPrizeFlow(flow);
 
-      alert(
-        `✅ 配置刷新成功！\n\n` +
-        `当前参与人数：${data.length} 人\n` +
-        `将抽取的奖项：${newValidPrizes.map(p => `${p.name}(${p.total})`).join(' → ')}`
-      );
+			// 初始化编辑数据（用于弹窗内修改）
+			setEditSettings({ ...cleanSettings });
 
-    } catch (err) {
-      console.error('刷新失败:', err);
-      alert(`❌ 配置校验失败：\n\n${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+			setShowConfigModal(true);
+
+		} catch (err) {
+			alert(`读取配置失败：${err}`);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleApplyConfig = async () => {
+  try {
+    // 1. 先读取当前文件里的原始内容（保留注释和其他未编辑字段）
+    const rawSettings = await loadSettings();        // 你已有的读取函数
+
+    // 2. 只用用户修改过的值去覆盖原始配置
+    const updatedSettings = { ...rawSettings, ...editSettings };
+
+    // 3. 转成格式化的 JSON 字符串
+    const jsonContent = JSON.stringify(updatedSettings, null, 2);
+
+    // 4. 写入文件
+    await invoke('write_config_file', {
+      fileName: 'settings.json',
+      content: jsonContent
+    });
+
+    // 5. 更新主界面
+    setSettings(updatedSettings);
+
+    // 6. 刷新参与者名单和显示区域
+    const csvText = await loadParticipantsCsv();
+    const data = parseParticipantsCSVFromString(csvText, Number(updatedSettings.read_fields_max || 4));
+    setParticipants(data);
+
+    const count = data.length;
+    const flow = getPrizeFlowText(updatedSettings);
+
+    setModalParticipantsCount(count);
+    setModalPrizeFlow(flow);
+
+    alert('✅ 配置已保存并应用！');
+
+    // 7. 保存后滚动条回到顶部
+    setTimeout(() => {
+      const modal = document.querySelector('.modal-content');
+      if (modal) modal.scrollTop = 0;
+    }, 100);
+
+  } catch (err) {
+    alert(`保存失败：${err}`);
+  }
+};
 
   const currentPrize = validPrizes[currentPrizeIndex] || {};
   const currentPerson = participants[currentIndex] || {};
@@ -650,14 +722,28 @@ useEffect(() => {
   if (!isFullscreen) {
     return (
       <div className="main-screen">
-        <h2>抽奖系统</h2>
+        <h2 style={{
+  color: '#fffbeb',                    // 接近纯白的亮金
+  fontSize: '54px',
+  fontWeight: '800',
+  textShadow: `
+    0 0 15px #f4c542,
+    0 0 30px #ffd84d,
+    0 0 50px #ffeb3b,
+    0 0 80px #ff572288
+  `,
+  marginBottom: '30px',
+  letterSpacing: '3px'
+}}>
+  Lucky Draw
+</h2>
         
         <p>当前参与人数：{participants.length} 人</p>
 
         <div className="header-buttons">
           <button 
             className="refresh-button"
-            onClick={refreshConfig}
+            onClick={handleRefreshConfig}
             disabled={loading}
           >
             {loading ? '刷新中...' : '↻ 刷新配置'}
@@ -710,6 +796,269 @@ useEffect(() => {
             <span className="speaker-icon">{!isMuted ? '🔊' : '🔇'}</span>
           </label>
         </div>
+
+				{/* ==================== 配置信息弹窗（带保存按钮） ==================== */}
+				{/* ==================== 配置信息弹窗（再窄 1/3 版） ==================== */}
+{/* ==================== 配置信息弹窗 ==================== */}
+{showConfigModal && (
+  <div 
+    className="modal-overlay" 
+    onClick={() => setShowConfigModal(false)}
+  >
+    <div 
+      className="modal-content" 
+      onClick={e => e.stopPropagation()}
+      style={{
+        width: '620px',
+        maxHeight: '93.5vh',
+        overflow: 'auto',
+        backgroundColor: 'white',
+        borderRadius: '12px',
+        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
+        padding: '25px'
+      }}
+    >
+      <h2>📋 当前配置信息</h2>
+
+            {/* 显示区域 - 进一步减少行间距 */}
+      <div style={{ 
+        background: '#f8f9fa', 
+        padding: '16px', 
+        borderRadius: '8px', 
+        marginBottom: '25px',
+        fontSize: '15px',
+        lineHeight: '1.5'           // 进一步缩小行高
+      }}>
+        
+        {/* 第1行：当前参与人数 */}
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap' }}>
+          <strong style={{ width: '118px', flexShrink: 0 }}>当前参与人数：</strong> 
+          <span style={{ 
+            fontWeight: 'bold', 
+            color: '#28a745',
+            marginRight: '16px'
+          }}>
+            {modalParticipantsCount} 人
+          </span>
+          
+          <a 
+            href="#"
+            onClick={async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              try {
+                const configPath = await invoke('get_config_dir');
+                const csvFilePath = `${configPath.replace(/[\/\\]$/, '')}\\participants.csv`;
+                await openSystemFolder(csvFilePath);
+              } catch (err) {
+                console.error(err);
+                alert('打开 participants.csv 文件失败：\n' + (err.message || String(err)));
+              }
+            }}
+            style={{
+              color: '#0066cc',
+              fontWeight: 'bold',
+              textDecoration: 'underline',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.color = '#004499'}
+            onMouseOut={(e) => e.currentTarget.style.color = '#0066cc'}
+          >
+            编辑抽奖参与人员名单点击这里
+          </a>
+        </div>
+
+        {/* 第2行：动画方案 */}
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
+          <strong style={{ width: '118px', flexShrink: 0 }}>动画方案：</strong> 
+          <span style={{ 
+            color: '#28a745', 
+            fontWeight: 'bold'
+          }}>
+            {editSettings.scheme || 'classic-red'}
+          </span>
+        </div>
+
+        {/* 第3行：当前抽奖流程 */}
+        <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+          <strong style={{ 
+            width: '118px', 
+            flexShrink: 0, 
+            paddingTop: '1px' 
+          }}>当前抽奖流程：</strong> 
+          <span style={{ 
+            color: '#28a745', 
+            fontWeight: '500',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-all',
+            flex: 1
+          }}>
+            {modalPrizeFlow}
+          </span>
+        </div>
+
+      </div>
+
+      <div style={{ display: 'flex', gap: '30px' }}>
+
+        {/* 左边：输入区域（保持你原来的样式和高度） */}
+        {/* 左边：输入区域 */}
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'grid', gap: '6px' }}>   {/* ← 从 9px 改成 6px */}
+
+            {[
+              { key: 'grand-prize',  label: '特等奖' },
+              { key: '1st-prize',    label: '一等奖' },
+              { key: '2nd-prize',    label: '二等奖' },
+              { key: '3rd-prize',    label: '三等奖' },
+              { key: '4th-prize',    label: '四等奖' },
+              { key: '5th-prize',    label: '五等奖' },
+              { key: '6th-prize',    label: '六等奖' },
+              { key: 'hotpot-prize', label: '火锅奖' },
+            ].map((item) => (
+              <div key={item.key} style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px',
+                fontSize: '14.5px'
+              }}>
+                <label style={{ width: '82px', fontWeight: 'bold' }}>{item.label}：</label>
+                <input 
+                  type="number"
+                  min="0"
+                  value={editSettings[item.key] ?? 0}
+                  onChange={(e) => setEditSettings({
+                    ...editSettings,
+                    [item.key]: parseInt(e.target.value) || 0
+                  })}
+                  style={{ 
+                    width: '95px', 
+                    padding: '4px 8px', 
+                    fontSize: '14.5px',
+                    borderRadius: '6px',
+                    height: '22px'
+                  }}
+                />
+              </div>
+            ))}
+
+          </div>
+        </div>
+
+        {/* 右边：按钮区域 + 动画方案下拉框 */}
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '12px',
+          alignItems: 'flex-start',
+          paddingTop: '4px'
+        }}>
+          
+          {/* 动画方案下拉框 - 挪到保存按钮上方 */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px',
+            fontSize: '14.5px',
+            width: '100%'
+          }}>
+            <label style={{ width: '82px', fontWeight: 'bold', flexShrink: 0 }}>动画方案：</label>
+            <select 
+              value={editSettings.scheme || 'classic-red'}
+              onChange={(e) => setEditSettings({ ...editSettings, scheme: e.target.value })}
+              style={{ 
+                flex: 1, 
+                padding: '4px 8px', 
+                fontSize: '14.5px',
+                borderRadius: '6px',
+                height: '26px'
+              }}
+            >
+              <option value="classic-red">classic-red</option>
+              <option value="neon-purple">neon-purple</option>
+              <option value="snow-season">snow-season</option>
+              <option value="flyin-red">flyin-red</option>
+            </select>
+          </div>
+
+           {/* 保存并应用 和 关闭按钮 - 放在 scheme 和 bottom 中间位置 */}
+          <div style={{ 
+            marginTop: '45px',           // ← 关键调整：控制按钮与上方 scheme 的距离
+            alignSelf: 'flex-end', 
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end'
+          }}>
+            
+            <button 
+              onClick={handleApplyConfig}
+              style={{ 
+                padding: '8px 20px', 
+                fontSize: '14px',
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                width: '120px',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 3px 6px rgba(0,0,0,0.15)'
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.transform = 'scale(0.95)';
+                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+              }}
+              onMouseUp={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 3px 6px rgba(0,0,0,0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 3px 6px rgba(0,0,0,0.15)';
+              }}
+            >
+              保存并应用
+            </button>
+
+            <button 
+              onClick={() => setShowConfigModal(false)} 
+              style={{ 
+                padding: '8px 20px', 
+                fontSize: '14px',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                width: '120px',
+                marginTop: '40px'
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.transform = 'scale(0.95)';
+                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+              }}
+              onMouseUp={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 3px 6px rgba(0,0,0,0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 3px 6px rgba(0,0,0,0.15)';
+              }}
+            >
+              关闭
+            </button>
+          </div>
+
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+)}
 
         {/* 关于弹窗 */}
         {showAbout && (
