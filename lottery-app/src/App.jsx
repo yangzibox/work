@@ -722,21 +722,7 @@ useEffect(() => {
   if (!isFullscreen) {
     return (
       <div className="main-screen">
-        <h2 style={{
-  color: '#fffbeb',                    // 接近纯白的亮金
-  fontSize: '54px',
-  fontWeight: '800',
-  textShadow: `
-    0 0 15px #f4c542,
-    0 0 30px #ffd84d,
-    0 0 50px #ffeb3b,
-    0 0 80px #ff572288
-  `,
-  marginBottom: '30px',
-  letterSpacing: '3px'
-}}>
-  Lucky Draw
-</h2>
+        <h2 className="main-title"><span>Lucky</span> <span>Draw</span></h2>
         
         <p>当前参与人数：{participants.length} 人</p>
 

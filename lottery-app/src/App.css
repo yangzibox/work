@@ -39,7 +39,7 @@ html, body {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(15, 23, 42, 0.3);   /* 可调整透明度 0.4 ~ 0.65 */
+  background: rgba(15, 23, 42, 0.4);   /* 可调整透明度 0.4 ~ 0.65 */
   z-index: 1;
 }
 
@@ -48,7 +48,53 @@ html, body {
   z-index: 2;
 }
 
+/* 主屏标题 - 亮金发光风格（带 Hover 效果） */
+.main-title {
+  color: #ffe066;                    /* 静态：温暖金色，无晕 */
+  font-size: 58px;
+  font-weight: 800;
+  margin-bottom: 30px;
+  letter-spacing: 3px;
+  text-shadow: none;
+  transition: letter-spacing 0.4s ease;
+  cursor: default;
+  display: inline-block;
+}
+
+/* Hover 时：亮白金 + 极轻微白晕（几乎看不出来） */
+.main-title:hover {
+  letter-spacing: 15px;
+  transform: translateY(-8px);
+  color: #fffbeb;
+  text-shadow: 
+    0 0 12px rgba(255, 255, 255, 0.25),   /* 非常轻的白晕 */
+    0 0 20px rgba(255, 255, 255, 0.15);   /* 第二层更淡 */
+}
+
+/* Lucky 和 Draw 交替泛红 */
+.main-title:hover span:first-child {
+  animation: luckyRedPulse 1.15s infinite alternate;
+}
+
+.main-title:hover span:last-child {
+  animation: drawRedPulse 1.15s infinite alternate 0.57s;
+}
+
+/* Lucky 交替变红动画 */
+@keyframes luckyRedPulse {
+  from { color: #fffbeb; }
+  to   { color: #ff5252; }
+}
+
+/* Draw 交替变红动画 */
+@keyframes drawRedPulse {
+  from { color: #fffbeb; }
+  to   { color: #ff5252; }
+}
+
+/* <p> on main screen */
 .main-screen p {
+  font-size: 18px;
   color: #f4c542; /* 黄色 */
   font-weight: bold;
 }
@@ -95,7 +141,7 @@ button {
   background: #f4c542;  /* 金黄色 */
   color: #5a3b00;        /* 深棕字 */
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
-  margin: 20px;
+  margin: 80px 20px 20px 20px; 
 }
 
 .start-button:hover {
