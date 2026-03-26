@@ -28,7 +28,7 @@ html, body {
 
   /* 关键写法：使用 / 开头，指向 public 文件夹 */
   background: url('/images/main-bg.png') center/cover no-repeat;
-  background-color: #0f172a;        /* 备用颜色 原始红色 #c8102e #b71c1c */
+  background-color: #c18f0f;        /* 备用颜色 原始红色 #c8102e #b71c1c */
 
   color: #ffffff;
   overflow: hidden;
@@ -141,7 +141,7 @@ button {
   background: #f4c542;  /* 金黄色 */
   color: #5a3b00;        /* 深棕字 */
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
-  margin: 80px 20px 20px 20px; 
+  margin: 40px 20px 20px 20px; 
 }
 
 .start-button:hover {
@@ -189,7 +189,6 @@ button {
   cursor: not-allowed;
 }
 
-/* 主屏幕 #2 */
 
 
 

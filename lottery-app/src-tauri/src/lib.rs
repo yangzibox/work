@@ -5,7 +5,7 @@
 use tauri_plugin_opener::OpenerExt;
 use std::path::PathBuf;
 use std::fs;
-use tauri::Manager;
+//use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

@@ -10,11 +10,13 @@
 **文件大小**：2.4 MB  
 
 **网盘下载**（蓝奏云）  
-**分享链接**：https://wwbbw.lanzouv.com/izLyB3lg0m5i  
+**分享链接**：https://wwbbw.lanzouv.com/ieu9e3lk41hc  (国外访问慢一点） 或者 https://pan.quark.cn/s/c8e72426a15b (夸克云需注册）
 **提取码**：需联系作者获取  
 
 > **如何获取提取码**：  
-> 请在本 Release 下留言（Issue）、通过 GitHub 私信，或其他方式联系作者，我会尽快回复提取码。
+> 请在本 Release 下留言（Issue）、通过 GitHub 私信，或其yangzibox@163.com联系作者，我会尽快回复提取码。
+## 💬 需要提取码？
+欢迎在 **Issues** 里留言告诉我（点击上方菜单的 **Issues** → New issue），我会尽快给你回复提取码。
 
 ### 安装步骤
 1. 点击上方链接打开网盘页面  
@@ -31,12 +33,24 @@
 
 ## 📋 使用说明
 
-1. 打开程序  
-2. 导入或手动添加参与者  
-3. 点击“开始抽奖”享受动画效果  
-4. 支持不重复抽取模式  
+**！！详细配置指南（必看）！！**：
 
-程序内有“关于”按钮可查看更多信息。
+👉 **[点击查看 LuckyDrawBox 配置说明](https://htmlpreview.github.io/?https://github.com/yangzibox/work/blob/main/lottery-app/guide.html)**
+
+程序内右上角也有 **“关于”** 按钮，可查看配置目录和输出路径。
+
+
+## 🎨 程序主界面预览
+主界面：
+![LuckyDrawBox 主界面](https://raw.githubusercontent.com/yangzibox/work/main/lottery-app/image/image1.png)
+关于界面：
+![LuckyDrawBox 关于面](https://raw.githubusercontent.com/yangzibox/work/main/lottery-app/image/image2.png)
+classic-red主题：
+![LuckyDrawBox 中奖全屏面1](https://raw.githubusercontent.com/yangzibox/work/main/lottery-app/image/image3.png)
+neon-purple主题：
+![LuckyDrawBox 中奖全屏面2](https://raw.githubusercontent.com/yangzibox/work/main/lottery-app/image/image4.png)
+
+
 
 ## ⚠️ 注意事项
 
@@ -93,12 +107,11 @@ A lightweight and easy-to-use lottery application, perfect for events, year-end 
 
 ## 📋 How to Use
 
-1. Open the application  
-2. Import or add participants  
-3. Click “Start Draw” and enjoy the smooth animation  
-4. Supports non-repeating draw mode  
+Detailed configuration guide: **[LuckyDrawBox Configuration Guide](./lottery-app/guide.html)**
 
-Check the “About” button inside the app for more details.
+Or click directly: [guide.html](./lottery-app/guide.html)
+
+There is also an “About” button inside the app for more information.
 
 ## ⚠️ Notes
 

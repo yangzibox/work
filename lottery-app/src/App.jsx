@@ -1058,7 +1058,7 @@ useEffect(() => {
             >
               <h3>抽奖桌面程序{versionText} (内部版)</h3>
               <p>作者：yangzibox@163.com</p>
-              <p>GitHub: https://github.com/yangzibox/work</p>
+              <p style={{ fontSize: '12px' }}>GitHub: https://github.com/yangzibox/work/releases/tag/v1.0.1</p>
 
               {/* ==================== 配置目录（configuration） ==================== */}
 							<div className="path-section">
