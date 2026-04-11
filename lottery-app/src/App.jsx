@@ -286,6 +286,18 @@ useEffect(() => {
     console.log('不是dev版本，执行程序锁');
   }
 
+  // ========== 新增的日期判断 ==========
+  const now = new Date();
+  const deadline = new Date('2027-05-01');
+
+  if (now < deadline) {
+      console.log(`当前日期 ${now.toLocaleDateString()} 未到2027-05-01，绕过程序锁`);
+      return;
+  }
+  // ====================================
+
+  console.log('不是dev版本且已超过2027-05-01，执行程序锁');
+
   // 正常走锁检查
   let isUnlocked = false;
   try {

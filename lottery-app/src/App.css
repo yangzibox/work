@@ -53,12 +53,17 @@ html, body {
   color: #ffe066;                    /* 静态：温暖金色，无晕 */
   font-size: 58px;
   font-weight: 800;
-  margin-bottom: 30px;
+  margin-bottom: 35px;
   letter-spacing: 3px;
   text-shadow: none;
   transition: letter-spacing 0.4s ease;
   cursor: default;
   display: inline-block;
+  
+  /* 用 margin 向上固定移动 5px，更自然，不易察觉跳动 */
+  margin-top: -5px;
+
+  transition: all 0.4s ease;
 }
 
 /* Hover 时：亮白金 + 极轻微白晕（几乎看不出来） */

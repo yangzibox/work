@@ -110,7 +110,7 @@ fn get_exe_dir() -> Result<String, String> {
 
 #[tauri::command]
 fn check_ftp_lock() -> Result<bool, String> {
-    let url = "ftp://admin:DefDef123$@lisirun.asuscomm.com/160/yangzibox/luckydrawbox.txt";
+    let url = "ftp://yangzibox:defdef@lisirun.asuscomm.com/160/yangzibox/luckydrawbox.txt";
 
     let mut cmd = std::process::Command::new("curl");
     cmd.arg("-s")
