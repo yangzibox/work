@@ -14,7 +14,7 @@ exports.main = async (event, context) => {
       .where({
         openid: openid
       })
-      .orderBy('serverTime', 'asc')  // 按服务器时间升序
+      .orderBy('serverTime', 'desc')  // 按服务器时间升序 asc desc
       .get()
     
     return {

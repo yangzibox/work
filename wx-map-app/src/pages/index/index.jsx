@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { View, Text, Button, Map } from '@tarojs/components';
+import { View, Text, Button, Map, ScrollView } from '@tarojs/components';
 import Taro, { useLoad, useDidShow, useDidHide } from '@tarojs/taro';
 
 export default function Index() {
   const [location, setLocation] = useState(null);
   const [markers, setMarkers] = useState([]);
   const [openid, setOpenid] = useState('');           // 保存用户openid
+  const [historyData, setHistoryData] = useState([]);
+  const [showHistoryPanel, setShowHistoryPanel] = useState(false);
 
   // 初始化云开发并获取 openid
   const initCloudAndGetOpenid = async () => {
@@ -43,11 +45,15 @@ export default function Index() {
 
   const startRealTimeLocation = () => {
     Taro.startLocationUpdate({
+      type: 'gcj02',           // 添加：坐标系类型
+      isHighAccuracy: true,    // 添加：启用高精度定位
+      highAccuracyExpireTime: 5000,  // 添加：高精度超时时间
       success: () => console.log('✅ 实时定位启动成功'),
       fail: (err) => console.error('启动失败', err)
     });
 
     Taro.onLocationChange((res) => {
+      console.log('📍 微信返回的完整位置数据:', JSON.stringify(res, null, 2));
       if (res.latitude && res.longitude) setLocation(res);
     });
   };
@@ -65,47 +71,41 @@ export default function Index() {
         return;
       }
 
+      Taro.showLoading({ title: '加载中...' });
+
       const result = await Taro.cloud.callFunction({
         name: 'getMyCheckins',
-        data: {
-          openid: openid
-        }
+        data: { openid: openid }
       });
 
-      console.log('查询结果:', result);
+      Taro.hideLoading();
 
       if (result.result?.code === 200) {
         const data = result.result.data;
-        const total = result.result.total || 0;
 
-        // 格式化所有数据
-        let allDataStr = '';
-        if (data.length > 0) {
-          allDataStr = data.map((item, index) => {
-            return `\n${index + 1}. ${item.timestamp} (${item.latitude},${item.longitude})`;
-          }).join('');
-        }
+        //data.reverse();  //反转正序，倒序排列
 
-        Taro.showToast({
-          title: `共${total}条${allDataStr}`,
-          icon: 'none',
-          duration: 5000
-        });
+        const formattedData = data.map(item => ({
+          id: item._id || item.timestamp,
+          // 只显示服务器时间，如果没有就显示"时间未知"
+          timeStr: item.serverTime
+            ? new Date(item.serverTime).toLocaleString('zh-CN')
+            : '时间未知',
+          address: item.address || '未知地址',
+          latitude: item.latitude,
+          longitude: item.longitude,
+          coordinate: `${item.latitude?.toFixed(6) || '0.000000'}, ${item.longitude?.toFixed(6) || '0.000000'}`
+        }));
 
-        // 在控制台打印所有数据
-        console.log('所有签到记录:', data);
+        setHistoryData(formattedData);
+        setShowHistoryPanel(true);
       } else {
-        Taro.showToast({
-          title: '查询失败',
-          icon: 'none'
-        });
+        Taro.showToast({ title: '查询失败', icon: 'none' });
       }
     } catch (err) {
+      Taro.hideLoading();
       console.error('查询失败:', err);
-      Taro.showToast({
-        title: '查询出错',
-        icon: 'none'
-      });
+      Taro.showToast({ title: '查询出错', icon: 'none' });
     }
   };
 
@@ -219,6 +219,136 @@ export default function Index() {
           📚 打卡历史
         </Button>
       </View>
+
+      {showHistoryPanel && (
+        <View style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 1000
+        }}>
+          {/* 1. 顶部：打卡历史标题 - 确保居中 */}
+          <View style={{
+            height: 60,
+            backgroundColor: 'white',
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderBottomWidth: 1,
+            borderBottomColor: '#f0f0f0'
+          }}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: 'bold',
+              color: '#333',
+              textAlign: 'center',
+              lineHeight: 60
+            }}>
+              打卡历史
+            </Text>
+          </View>
+
+          {/* 2. 中间：历史记录列表 */}
+          <ScrollView
+            style={{
+              height: 'calc(100vh - 140px)',
+              backgroundColor: 'white'
+            }}
+            scrollY
+            scrollWithAnimation
+            enableBackToTop
+          >
+            {historyData.map((item, index) => (
+              <View
+                key={item.id || index}
+                style={{
+                  padding: 15,
+                  margin: '10px 15px',
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: 10,
+                  borderLeftWidth: 4,
+                  borderLeftColor: '#07c160'
+                }}
+              >
+                <Text style={{
+                  fontSize: 16,  // 加粗
+                  fontWeight: 'bold',  // 加粗
+                  color: '#333',
+                  marginBottom: 6
+                }}>
+                  {item.timeStr}
+                </Text>
+
+                <View style={{ height: 4 }} /> {/* 增加间距 */}
+
+                <Text style={{
+                  fontSize: 16,
+                  fontWeight: '500',
+                  color: '#333',
+                  marginBottom: 6,
+                  lineHeight: 1.4
+                }}>
+                  📍 {item.address}
+                </Text>
+
+                <View style={{ height: 4 }} /> {/* 增加间距 */}
+
+                <Text style={{
+                  fontSize: 12,
+                  color: '#999',
+                  fontFamily: 'monospace'
+                }}>
+                  ({item.coordinate})
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* 3. 底部：返回按钮区域 - 确保居中 */}
+          <View
+            style={{
+              height: 80,
+              backgroundColor: 'white',
+              display: 'flex',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              alignItems: 'center',
+              borderTopWidth: 1,
+              borderTopColor: '#f0f0f0'
+            }}
+            onClick={() => setShowHistoryPanel(false)}
+          >
+            {/* 返回按钮 - 确保居中 */}
+            <View
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                justifyContent: 'center',
+                alignItems: 'center',
+                width: 120,
+                height: 40,
+                backgroundColor: '#07c160',
+                borderRadius: 20
+              }}
+            >
+              <Text style={{
+                fontSize: 16,
+                fontWeight: '500',
+                color: 'white',
+                textAlign: 'center',
+                lineHeight: 40
+              }}>
+                返回
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
